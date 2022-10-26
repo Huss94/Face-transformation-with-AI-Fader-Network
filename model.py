@@ -24,7 +24,8 @@ def create_encoder():
 
     return encoder
 
-
+# def create_decoder():
 
 enc = create_encoder()
+#jfkldsmjfqdmlkfjdsqlkqjmdflkqdjsqmfldqsj
 enc.summary()
