@@ -58,7 +58,7 @@ def process_attributes():
         assert len(split) == len(keys) + 1
 
         for k, l in enumerate(split[1:]):
-            # Comme écrit dans l'article, au lieu d'utiliser 1 et -1, on utilisera des valeurs binaire 1 et 0
+            # Comme écrit dans l'article, au lieu d'utiliser 1 et -1, on utilisera des valeurs binaire 1 et 0
             dict_attr[keys[k]][i] = l == '1' 
 
     #dict_attr est un dictionnaire où pour chaque clé (sourire, lunette ...) correspond un tableau de taille NB_IMAGES
