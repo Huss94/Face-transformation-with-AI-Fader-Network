@@ -48,6 +48,38 @@ def create_decoder(n_attr):
 
     return decoder
 
+class AutoEncoder():
+    def __init__(self, n_attr = 4):
+        self.encoder = create_encoder()
+        self.decoder = create_decoder(n_attr)
+
+    def step(self): 
+        """
+        Function that train the autoencoder for a given batch
+
+        """
+        # Rendre l'auto encoder trainable
+        # Calculer pour un batch donné, les outputs de l'encoder et du decoder 
+        # Calculer la loss des sorites du decoder avec les images de bases 
+        # Calculer la loss de l'encoder avec le latent discriminator (faire attention a ce que le latetnt ddiscrinator ne soit pas trainable)
+        
+        raise NotImplementedError("Not implemented yet")
+
+
+
+
+class Disciminator():
+    def __init__(self): 
+        # Créer le réseau de neurones du discrimminator comme indiqnué sur le papier
+        raise NotImplemented
+
+    def step(self):
+        # Put autoEncoder not trainable and Discriminator trainable
+        # Compute loss betwteen discriminator and a batch of attributes y 
+
+        raise NotImplemented
+
+        ...
 train = np.load('data/test.npz')['arr_0']
 e1 = train[0:1]
 
