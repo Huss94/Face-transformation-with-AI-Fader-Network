@@ -1,8 +1,13 @@
-import numpy as np 
+import tensorflow as tf
 
-# a = np.load("data/img_celeba1.npz")['arr_0']
-b = np.load("data/attributes.npz", allow_pickle=True)['arr_0'].item() #Il faut faire item poru réccuperer le dictionnaire
-# print(a[0])
-print(b)
+w = tf.Variable(tf.random.normal((3, 2)), name='w')
+b = tf.Variable(tf.zeros(2, dtype=tf.float32), name='b')
+x = [[1., 2., 3.]]
 
-input("ok")
+with tf.GradientTape(persistent=True) as tape:
+  y = x @ w + b
+  loss = tf.reduce_mean(y**2)
+
+[dl_dw, dl_db] = tape.gradient(loss, [w, b])
+print(dl_dw)
+print(dl_db)

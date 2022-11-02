@@ -1,6 +1,5 @@
-from re import L
 from tensorflow import keras
-from keras.layers import Input,Dense, Conv2D, Conv2DTranspose, MaxPooling2D, Flatten, UpSampling2D, Reshape , ZeroPadding2D, LeakyReLU, BatchNormalization
+from keras.layers import Conv2D, Conv2DTranspose, ZeroPadding2D, LeakyReLU, BatchNormalization
 from keras.models import Model,Sequential
 import numpy as np 
 import tensorflow as tf
@@ -33,7 +32,6 @@ def create_decoder(n_attr):
     decoder = Sequential()
     for i in range(n_layers)[::-1]:
         nb_filters = min(16*2**i, max_filters)
-        print(i)
 
         if i == 6:
             decoder.add(Conv2DTranspose(nb_filters, kernel_size = (4, 4),padding= "same", strides = (2,2), activation='relu', input_shape = (2,2,512+n_attr)))
@@ -80,12 +78,15 @@ class Disciminator():
         raise NotImplemented
 
         ...
-train = np.load('data/test.npz')['arr_0']
-e1 = train[0:1]
-
-enc= create_encoder()
-v= enc(e1)
 
 
-dec = create_decoder(4)
-dec.summary()
+if __name__  == "__main__":
+    train = np.load('data/test.npz')['arr_0']
+    e1 = train[0:1]
+
+    enc= create_encoder()
+    v= enc(e1)
+
+
+    dec = create_decoder(4)
+    dec.summary()
