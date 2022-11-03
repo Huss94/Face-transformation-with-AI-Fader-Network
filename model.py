@@ -1,5 +1,5 @@
 from tensorflow import keras
-from keras.layers import Conv2D, Conv2DTranspose, ZeroPadding2D, LeakyReLU, BatchNormalization
+from keras.layers import Conv2D, Conv2DTranspose, ZeroPadding2D, LeakyReLU, BatchNormalization, Dropout, Dense
 from keras.models import Model,Sequential
 import numpy as np 
 import tensorflow as tf
@@ -9,84 +9,125 @@ n_layers = 7
 max_filters = 512
 im_size = 256
 
-def create_encoder(): 
-    encoder = Sequential()
+def create_autoencoder(n_attr = 4): 
+    encoder = Sequential(name = "encoder")
+    encoder.add(keras.Input(shape=(im_size, im_size, 3)))
+
+    decoder = Sequential(name = "decoder")
+    decoder.add(keras.Input(shape = (2, 2, 512 + n_attr)))
 
     for i in range(n_layers):
-        # On respecte les indications données dans l'aritcles, a savoir, un padding de 1 
-        # cur_im_size = im_size//(2**i)
+        nb_filters_enc = min(16*2**i, max_filters)
+        nb_filters_dec = min(16*2**(n_layers -(i+1)), max_filters)
 
-        nb_filters = min(16*2**i, max_filters)
-        if i == 0:
-            encoder.add(ZeroPadding2D(padding=(1, 1), input_shape = [im_size, im_size, 3]))
-        else: 
+        # Encoder
+        encoder.add(Conv2D(nb_filters_enc, 4, 2, 'same', activation = LeakyReLU(alpha=0.2)))
+        
+        # Decoder
+        if i == n_layers -1:
+            decoder.add(Conv2DTranspose(3, 4, 2, 'same', activation='relu'))
+        else:
+            decoder.add(Conv2DTranspose(nb_filters_dec, 4, 2, 'same', activation='relu'))
+
+
+        if i > 0:
+            # BatchNorm avant ou apres la fonction d'activation ???? A tester
+            # https://forums.fast.ai/t/why-perform-batch-norm-before-relu-and-not-after/81293/3
+
             encoder.add(BatchNormalization())
-            encoder.add(ZeroPadding2D(padding=(1, 1)))
-
-        encoder.add(Conv2D(nb_filters,(4,4), strides =(2,2), activation=LeakyReLU(alpha=0.2)))
-
-    
-    return encoder
-
-def create_decoder(n_attr):
-    decoder = Sequential()
-    for i in range(n_layers)[::-1]:
-        nb_filters = min(16*2**i, max_filters)
-
-        if i == 6:
-            decoder.add(Conv2DTranspose(nb_filters, kernel_size = (4, 4),padding= "same", strides = (2,2), activation='relu', input_shape = (2,2,512+n_attr)))
-        elif i > 0: 
-            decoder.add(Conv2DTranspose(nb_filters, kernel_size = (4, 4),padding = "same", strides = (2,2),activation='relu'))
-            decoder.add(BatchNormalization())
-        
-        else: 
-            decoder.add(Conv2DTranspose(3, kernel_size = (4, 4),padding = "same",  strides = (2,2), activation='relu', ))
             decoder.add(BatchNormalization())
 
+    return encoder, decoder
 
-    return decoder
+def create_discriminator(n_attr = 4):
+    discriminator = Sequential(name = "discriminator")
 
-class AutoEncoder():
+    # The shape of the latent form
+    discriminator.add(keras.Input(shape = (2,2,512)))
+
+    discriminator.add(Conv2D(512, 4, 2, 'same', activation=LeakyReLU(0.2)))
+    discriminator.add(BatchNormalization())
+    discriminator.add(Dropout(0.3))
+    discriminator.add(Dense(512, activation=LeakyReLU(0.2)))
+    discriminator.add(Dense(n_attr))
+
+    return discriminator
+
+class AutoEncoder(keras.Model):
+    """
+    La présence de cette classe est du au fait que le decoder a besoin de la represéntation latente z, et des attributs y pour reconstituer l'image avec l'attribut y 
+    """
     def __init__(self, n_attr = 4):
-        self.encoder = create_encoder()
-        self.decoder = create_decoder(n_attr)
+        super(AutoEncoder, self).__init__()
+        self.encoder, self.decoder = create_autoencoder(n_attr)
 
-    def step(self): 
-        """
-        Function that train the autoencoder for a given batch
+    def encode(self, x):
+        return self.encoder(x)
 
-        """
-        # Rendre l'auto encoder trainable
-        # Calculer pour un batch donné, les outputs de l'encoder et du decoder 
-        # Calculer la loss des sorites du decoder avec les images de bases 
-        # Calculer la loss de l'encoder avec le latent discriminator (faire attention a ce que le latetnt ddiscrinator ne soit pas trainable)
+    def decode(self, z, y):
+        # Le décodeur prend en entrée la concaténation de z et de y selon l'axe des colones
+        y = np.expand_dims(y,(1, 2))
+        y = np.repeat(y, 2, axis = 1)
+        y = np.repeat(y, 2, axis = 2)
+        zy = tf.concat((z,y), axis = -1)
+        return self.decoder(zy)
         
-        raise NotImplementedError("Not implemented yet")
+    
+
+    def call(self, x, y):
+        z = self.encode(x)
+        return z, self.decode(z, y)
 
 
+class Fader(keras.Model):
+    def __init__(self, autoencoder, discriminator, lambdae):
+        super(Fader, self).__init__()
+        self.ae = autoencoder
+        self.discriminator = discriminator
+        self.lambdae = lambdae
+        self.n_iter = 0
+        self.lambda_dis = 0
+    
+
+    def compile(self, autoenc_opt, dis_opt, ae_loss, dis_loss = tf.keras.losses.CategoricalCrossentropy()):
+        self.dis_opt = dis_opt
+        self.dis_loss = dis_loss
+        self.ae_loss = ae_loss
 
 
-class Disciminator():
-    def __init__(self): 
-        # Créer le réseau de neurones du discrimminator comme indiqnué sur le papier
-        raise NotImplemented
+    def train_step(self, data): 
+        # On considère pour l'instant que x et y sont des numpy arrays
+        x,y = data
+        print(x.shape)
 
-    def step(self):
-        # Put autoEncoder not trainable and Discriminator trainable
-        # Compute loss betwteen discriminator and a batch of attributes y 
+        #Training of the discriminator
+        self.discriminator.trainable = True
+        self.ae.trainable = False
 
-        raise NotImplemented
+        z = self.ae.encode(x)
+        with tf.GradientTape as tape:
+            y_preds = self.discriminator(z)
+            dis_loss = self.dis_loss(y, y_preds)
 
-        ...
+        grads = tape.gradient(dis_loss, self.discriminator.trainable_weights)
+        self.dis_opt.apply_gradients(zip(grads, self.discriminator.trainable_weights))
+
+
+        #Training of the autoencdoer
+        self.discriminator.trainable = False
+        self.ae.trainabale = True
+
+        with tf.GradientTape as tape:
+            z, decoded = self.ae(x,decoded)
+            dis_preds = self.discriminator(z)
+            ae_loss = self.ae_loss(x, decoded)
+
+
+        self.n_iter+=1
+        self.lambda_dis = 0.0001*min(self.n_iter/500000, 1)
 
 
 if __name__  == "__main__":
-    train = np.load('data/test.npz')['arr_0']
-    e1 = train[0:1]
+    dis = create_discriminator(4)
+    dis.summary()
 
-    enc= create_encoder()
-    v= enc(e1)
-
-
-    dec = create_decoder(4)
-    dec.summary()
