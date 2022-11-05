@@ -1,13 +1,37 @@
 from tensorflow import keras
-from keras.layers import Conv2D, Conv2DTranspose, ZeroPadding2D, LeakyReLU, BatchNormalization, Dropout, Dense
+from keras.layers import Conv2D, Conv2DTranspose, ZeroPadding2D, LeakyReLU, BatchNormalization, Dropout, Dense, Reshape
 from keras.models import Model,Sequential
 import numpy as np 
 import tensorflow as tf
+
+###
+from torch.nn import functional as F
+import torch
+
 
 n_layers = 7 
 
 max_filters = 512
 im_size = 256
+
+
+def attr_loss(y_true, y_preds, used_loss = tf.nn.softmax_cross_entropy_with_logits):
+    bs = y_true.shape[0]
+    n_attr = y_true.shape[-1]
+    loss = 0
+    # loss2 = 0
+
+    for i in range(0,n_attr,2):
+        yt = y_true[:, i:i+2]
+        yp = y_preds[:, i : i+2]
+        loss += tf.reduce_sum(used_loss(yt,yp))/bs
+        
+        # npr = torch.tensor(yp.numpy())
+        # ntr = torch.tensor(yt.numpy())
+        # loss2 += F.cross_entropy(npr, ntr)
+        # print("loss : ", used_loss(yt,yp), "loss2", loss2)
+        # loss3 = F.cross_entropy(npr, ntr[:, 1])
+    return loss 
 
 def create_autoencoder(n_attr = 4): 
     encoder = Sequential(name = "encoder")
@@ -32,7 +56,7 @@ def create_autoencoder(n_attr = 4):
 
         if i > 0:
             # BatchNorm avant ou apres la fonction d'activation ???? A tester
-            # https://forums.fast.ai/t/why-perform-batch-norm-before-relu-and-not-after/81293/3
+            # https://forums.fast.ai/t/why-perform-batch-norm-before-relu-and-not-after/81293/3
 
             encoder.add(BatchNormalization())
             decoder.add(BatchNormalization())
@@ -42,7 +66,7 @@ def create_autoencoder(n_attr = 4):
 def create_discriminator(n_attr = 4):
     discriminator = Sequential(name = "discriminator")
 
-    # The shape of the latent form
+    # The shape of the latent form
     discriminator.add(keras.Input(shape = (2,2,512)))
 
     discriminator.add(Conv2D(512, 4, 2, 'same', activation=LeakyReLU(0.2)))
@@ -50,8 +74,10 @@ def create_discriminator(n_attr = 4):
     discriminator.add(Dropout(0.3))
     discriminator.add(Dense(512, activation=LeakyReLU(0.2)))
     discriminator.add(Dense(n_attr))
+    discriminator.add(Reshape((n_attr,)))
 
     return discriminator
+
 
 class AutoEncoder(keras.Model):
     """
@@ -66,9 +92,15 @@ class AutoEncoder(keras.Model):
 
     def decode(self, z, y):
         # Le décodeur prend en entrée la concaténation de z et de y selon l'axe des colones
-        y = np.expand_dims(y,(1, 2))
-        y = np.repeat(y, 2, axis = 1)
-        y = np.repeat(y, 2, axis = 2)
+        if type(y) != type(z):
+            y = tf.constant(y)
+        y = tf.expand_dims(y, axis = 1)
+        y = tf.expand_dims(y, axis = 2)
+        y = tf.repeat(y, 2, axis = 1)
+        y = tf.repeat(y, 2, axis = 2)
+        # y = np.expand_dims(y,(1, 2))
+        # y = np.repeat(y, 2, axis = 1)
+        # y = np.repeat(y, 2, axis = 2)
         zy = tf.concat((z,y), axis = -1)
         return self.decoder(zy)
         
@@ -80,17 +112,18 @@ class AutoEncoder(keras.Model):
 
 
 class Fader(keras.Model):
-    def __init__(self, autoencoder, discriminator, lambdae):
+    def __init__(self, autoencoder, discriminator = create_discriminator()):
         super(Fader, self).__init__()
         self.ae = autoencoder
         self.discriminator = discriminator
-        self.lambdae = lambdae
         self.n_iter = 0
         self.lambda_dis = 0
     
 
-    def compile(self, autoenc_opt, dis_opt, ae_loss, dis_loss = tf.keras.losses.CategoricalCrossentropy()):
+    def compile(self, ae_opt, dis_opt, ae_loss, dis_loss = attr_loss, run_eagerly = False):
+        super(Fader,self).compile(run_eagerly = run_eagerly)
         self.dis_opt = dis_opt
+        self.ae_opt = ae_opt
         self.dis_loss = dis_loss
         self.ae_loss = ae_loss
 
@@ -98,14 +131,13 @@ class Fader(keras.Model):
     def train_step(self, data): 
         # On considère pour l'instant que x et y sont des numpy arrays
         x,y = data
-        print(x.shape)
-
+        
         #Training of the discriminator
         self.discriminator.trainable = True
         self.ae.trainable = False
 
         z = self.ae.encode(x)
-        with tf.GradientTape as tape:
+        with tf.GradientTape() as tape:
             y_preds = self.discriminator(z)
             dis_loss = self.dis_loss(y, y_preds)
 
@@ -115,18 +147,24 @@ class Fader(keras.Model):
 
         #Training of the autoencdoer
         self.discriminator.trainable = False
-        self.ae.trainabale = True
+        self.ae.trainable = True
 
-        with tf.GradientTape as tape:
-            z, decoded = self.ae(x,decoded)
+        with tf.GradientTape() as tape:
+            z, decoded = self.ae(x,y)
             dis_preds = self.discriminator(z)
             ae_loss = self.ae_loss(x, decoded)
+            ae_loss = ae_loss + self.dis_loss(y, dis_preds)*self.lambda_dis
+        grads = tape.gradient(ae_loss, self.ae.trainable_weights)
+        self.ae_opt.apply_gradients(zip(grads, self.ae.trainable_weights))
+            
 
 
         self.n_iter+=1
         self.lambda_dis = 0.0001*min(self.n_iter/500000, 1)
+        return {"reconstruction_loss": ae_loss, "dis_loss": dis_loss}
 
-
+        
+    
 if __name__  == "__main__":
     dis = create_discriminator(4)
     dis.summary()
