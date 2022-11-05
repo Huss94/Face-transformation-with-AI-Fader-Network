@@ -122,13 +122,52 @@ class Fader(keras.Model):
 
     def compile(self, ae_opt, dis_opt, ae_loss, dis_loss = attr_loss, run_eagerly = False):
         super(Fader,self).compile(run_eagerly = run_eagerly)
+        self.run_eagerly =run_eagerly
         self.dis_opt = dis_opt
         self.ae_opt = ae_opt
         self.dis_loss = dis_loss
         self.ae_loss = ae_loss
 
+    #Transformation en graph, accelere l'entrainemnet
+    @tf.function
+    def custom_train_step(self,data):
+        """
+        Cette méthode est la version de train_step customisée pour avoir le controole total sur le training (notamment les batch)
+        """
+        x,y = data
+        #Training of the discriminator
+        self.discriminator.trainable = True
+        self.ae.trainable = False
+
+        z = self.ae.encode(x)
+        with tf.GradientTape() as tape:
+            y_preds = self.discriminator(z)
+            dis_loss = self.dis_loss(y, y_preds)
+
+        grads = tape.gradient(dis_loss, self.discriminator.trainable_weights)
+        self.dis_opt.apply_gradients(zip(grads, self.discriminator.trainable_weights))
+
+
+        #Training of the autoencdoer
+        self.discriminator.trainable = False
+        self.ae.trainable = True
+
+        with tf.GradientTape() as tape:
+            z, decoded = self.ae(x,y)
+            dis_preds = self.discriminator(z)
+            ae_loss = self.ae_loss(x, decoded)
+            ae_loss = ae_loss + self.dis_loss(y, dis_preds)*self.lambda_dis
+        grads = tape.gradient(ae_loss, self.ae.trainable_weights)
+        self.ae_opt.apply_gradients(zip(grads, self.ae.trainable_weights))
+            
+
+
+        self.n_iter+=1
+        self.lambda_dis = 0.0001*min(self.n_iter/500000, 1)
+        return ae_loss, dis_loss
 
     def train_step(self, data): 
+        # Cette fonciton est appelé a chaque step par model.fit()
         # On considère pour l'instant que x et y sont des numpy arrays
         x,y = data
         
