@@ -6,27 +6,35 @@ from model import AutoEncoder, Fader
 from loader import Loader
 import cv2 as cv
 import matplotlib.pyplot as plt
-from utils import load_batch
 from time import time
 from tqdm import tqdm
+import argparse
 
+
+#L'utilisation du parser a été inspiré du code impélmenté par les développeur du fader network
+parser = argparse.ArgumentParser(description='Train the fader Network')
+parser.add_argument("--batch_size", type = int, default = 32, help= "Size of the batch used during the training")
+parser.add_argument("--img_path", type = str, default = "data/img_align_celeba", help= "Path to images")
+parser.add_argument("--attr_path" ,type = str, default = "data/attributes.npz", help = "path to attributes")
+parser.add_argument("--attr", type = str, default= "Smiling,Male", help= "Considered attributes to train the network with")
+parser.add_argument("--n_epoch", type = int, default = 1000, help = "Numbers of epochs")
+parser.add_argument("--epoch_size", type = int, default = 50000, help = "Number of images seen at each epoch")
+
+params = parser.parse_args()
 
 if __name__ == "__main__":
-    ae = AutoEncoder(4)
-    considered_attributes = ('Male', 'Smiling')
-    train_indices = 160000
-    val_indices = train_indices + 20000
+    train_indices = 162770
+    val_indices = train_indices + 19867
 
-    Data = Loader("data/attributes.npz","data/img_align_celeba", considered_attributes, train_indices, val_indices)
-
+    Data = Loader(params, train_indices, val_indices)
     bs = 5
 
     # A augmenter en fonction de la mémoire disponible dans l'ordinateur
     # On perd un peu de temps a recharger a chaque fois les images de validation alors que se sont toujours les 20000 memes
     # Il faudrait peut etre changer ca si on a accès a plus de RAM et gardre en mémoire le dataset de validation
     eval_bs = 100
-    epochs = 1
-    f = Fader(ae)
+    epochs = 6
+    f = Fader(params)
     
     f.compile(
         ae_opt= keras.optimizers.Adam(learning_rate=0.0002),
@@ -43,27 +51,27 @@ if __name__ == "__main__":
     for epoch in range(epochs):
 
         #Training
-        recon_loss = []
-        dis_loss = []
-        dis_accuracy = []
+        recon_loss_tab = []
+        dis_loss_tab = []
+        dis_accuracy_tab = []
 
         for step in range(0, train_indices//bs, bs):
             t = time()
             batch_x, batch_y = Data.load_random_batch(0, train_indices, bs)
-            recon_loss, dis_loss,  dis_acc= f.custom_train_step((batch_x, batch_y))
+            recon_loss, dis_loss,  dis_acc= f.train_step((batch_x, batch_y))
 
-            recon_loss.append(recon_loss)
-            dis_loss.append(dis_loss)
-            dis_accuracy.append(dis_acc)
+            recon_loss_tab.append(recon_loss)
+            dis_loss_tab.append(dis_loss)
+            dis_accuracy_tab.append(dis_acc)
             print(step, dis_acc, time()-t)
             
             if step >= bs * 3:
                 break
 
 
-        history['reconstruction_loss'].append(np.mean(recon_loss))
-        history['discriminator_loss'].append(np.mean(dis_loss))
-        history['dis_accuracy'].append(np.mean(dis_accuracy))
+        history['reconstruction_loss'].append(np.mean(recon_loss_tab))
+        history['discriminator_loss'].append(np.mean(dis_loss_tab))
+        history['dis_accuracy'].append(np.mean(dis_accuracy_tab))
 
         # Validation
         recon_val_loss = []
