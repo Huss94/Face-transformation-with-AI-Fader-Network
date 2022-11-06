@@ -3,14 +3,23 @@ import cv2 as cv
 import tensorflow as tf
 from utils import vstack, normalize
 class Loader():
-    def __init__(self, params, train_ind, val_ind):
+    def __init__(self, params, train_ind, val_ind, load_in_ram = False):
         self.img_path = params.img_path
         self.attr_path = params.attr_path
         self.attributes =  self.prepare_attributes(params)
         self.train_ind = train_ind
         self.val_ind = val_ind
+
+        self.data_loaded_in_ram = load_in_ram 
+        if load_in_ram:
+            self.images = self.load_images(params)
         
     
+    def load_images(self, params):
+        ...
+        # for i in g=
+
+
     def load_random_batch(self, ind_min, ind_max, bs):
         indices = np.random.randint(ind_min, ind_max, bs)
         return self.load_batch(indices)
@@ -25,14 +34,17 @@ class Loader():
         """
         batch_x, batch_y = np.array([]), np.array([])
 
-        for i in indices:
-            im = cv.imread(self.img_path+"/%06i.jpg" %i)
-            im = cv.resize(im, (256,256), interpolation=cv.INTER_LANCZOS4)
-            im = normalize(im)
-            im = np.expand_dims(im, 0)
-            batch_x = vstack(batch_x, im)
-            batch_y = vstack(batch_y, self.attributes[i])
-        
+        if not self.data_loaded_in_ram:
+            for i in indices:
+                im = cv.imread(self.img_path+"/%06i.jpg" %i)
+                im = cv.resize(im, (256,256), interpolation=cv.INTER_LANCZOS4)
+                im = normalize(im)
+                im = np.expand_dims(im, 0)
+                batch_x = vstack(batch_x, im)
+                batch_y = vstack(batch_y, self.attributes[i])
+        else:
+
+            
         return tf.constant(batch_x), tf.constant(batch_y)   
 
 
