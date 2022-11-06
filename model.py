@@ -61,7 +61,7 @@ def create_autoencoder(n_attr = 4):
 
     return encoder, decoder
 
-def create_discriminator(n_attr = 4):
+def create_discriminator(n_attr):
     discriminator = Sequential(name = "discriminator")
 
     # The shape of the latent form
@@ -78,13 +78,14 @@ def create_discriminator(n_attr = 4):
 
 class Classifier(keras.Model):
     def __init__(self, params):
+        self.params = params 
         super(Classifier, self).__init__()
         self.model, _  = create_autoencoder(0)
         self.model.add(Conv2D(512, 4, 2, 'same', activation=LeakyReLU(0.2)))
         self.model.add(BatchNormalization())
         self.model.add(Dense(512, activation = LeakyReLU(0.2)))
-        self.model.add(Dense(params.n_attr))
-        self.model.add(Reshape((params.n_attr,)))
+        self.model.add(Dense(2*params.n_attr))
+        self.model.add(Reshape((2*params.n_attr,)))
         self.build((None, 256,256,3))
 
     def compile(self, optimizer, loss = attr_loss_accuracy):

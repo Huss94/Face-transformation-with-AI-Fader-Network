@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     history = {'train_loss' : [], 'train_acc': [], 'val_loss' : [], 'val_acc' : []}
     best_acc = 0
-    # tf.config.run_functions_eagerly(True)
+    tf.config.run_functions_eagerly(True)
 
     for epoch in range(params.n_epoch):
         #training loop
