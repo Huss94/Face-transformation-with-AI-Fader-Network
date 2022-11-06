@@ -42,7 +42,7 @@ class Loader():
         attributes = np.load(self.attr_path, allow_pickle=True)['arr_0'].item()
         attr = None
         for p in considered_attr:
-            for i in range(params.n_attr):
+            for i in range(2):
                 formated_attr = np.reshape(attributes[p] == i, (len(attributes[p]), 1))
                 if attr is None:
                     attr = np.array(formated_attr.astype(np.float32))
