@@ -3,6 +3,7 @@ import tensorflow as tf
 from tensorflow import keras
 from utils import *
 from model import AutoEncoder, Fader
+from loader import Loader
 import cv2 as cv
 import matplotlib.pyplot as plt
 from utils import load_batch
@@ -10,31 +11,21 @@ from time import time
 from tqdm import tqdm
 
 
-
-
-
 if __name__ == "__main__":
-    # Chargement des données 
     ae = AutoEncoder(4)
-
-    # all_data = np.load("data/test.npz")['arr_0']/127.5
-    # all_data = all_data[:600]
-    attributes = np.load("data/attributes.npz", allow_pickle=True)['arr_0'].item()
-
-    #Params attributes
-    param_attr = ('Male', 'Smiling')
-    attr = prepare_attributes(attributes, param_attr)
-    
+    considered_attributes = ('Male', 'Smiling')
     train_indices = 160000
-    val_indices = 200000
+    val_indices = train_indices + 20000
 
-    # x_train = tf.constant(all_data[:train_indices])
-    # y_train = tf.constant(attr[:train_indices])
+    Data = Loader("data/attributes.npz","data/img_align_celeba", considered_attributes, train_indices, val_indices)
 
-    # x_val = all_data[train_indices:val_indices]
- 
-    bs = 32
-    epochs = 5
+    bs = 5
+
+    # A augmenter en fonction de la mémoire disponible dans l'ordinateur
+    # On perd un peu de temps a recharger a chaque fois les images de validation alors que se sont toujours les 20000 memes
+    # Il faudrait peut etre changer ca si on a accès a plus de RAM et gardre en mémoire le dataset de validation
+    eval_bs = 100
+    epochs = 1
     f = Fader(ae)
     
     f.compile(
@@ -44,15 +35,55 @@ if __name__ == "__main__":
         run_eagerly= False
     )
 
+    # tf.config.run_functions_eagerly(True)
+    history = {}
+    history['reconstruction_loss'] = []
+    history['discriminator_loss'] = []
+    history['dis_accuracy'] = []
     for epoch in range(epochs):
-        for step in tqdm(range(0, train_indices//bs, bs)):
+
+        #Training
+        recon_loss = []
+        dis_loss = []
+        dis_accuracy = []
+
+        for step in range(0, train_indices//bs, bs):
             t = time()
-            batch_x, batch_y = load_batch(0, train_indices, bs, attr)
-            recon_loss, dis_loss = f.custom_train_step((batch_x, batch_y))
-            print(step, recon_loss, dis_loss,  "time : ", time() - t)
+            batch_x, batch_y = Data.load_random_batch(0, train_indices, bs)
+            recon_loss, dis_loss,  dis_acc= f.custom_train_step((batch_x, batch_y))
+
+            recon_loss.append(recon_loss)
+            dis_loss.append(dis_loss)
+            dis_accuracy.append(dis_acc)
+            print(step, dis_acc, time()-t)
+            
+            if step >= bs * 3:
+                break
 
 
+        history['reconstruction_loss'].append(np.mean(recon_loss))
+        history['discriminator_loss'].append(np.mean(dis_loss))
+        history['dis_accuracy'].append(np.mean(dis_accuracy))
 
+        # Validation
+        recon_val_loss = []
+        dis_val_loss = []
+        dis_val_accuracy = []
 
+        for step in range(train_indices, val_indices, eval_bs):
+            t = time()
+            batch_x, batch_y = Data.load_batch_sequentially(step, step+eval_bs)
+            recon_loss, dis_loss, dis_acc = f.evaluate_on_val((batch_x, batch_y))
 
-            # Validation
+            recon_val_loss.append(recon_loss)
+            dis_val_loss.append(dis_loss)
+            dis_val_accuracy.append(dis_acc)
+            print(time() - t)
+
+        history['reconstruction_val_loss'].append(np.mean(recon_val_loss))
+        history['discriminator_val_loss'].append(np.mean(dis_val_loss))
+        history['dis_val_accuracy'].append(np.mean(dis_val_accuracy))
+
+       
+
+    
