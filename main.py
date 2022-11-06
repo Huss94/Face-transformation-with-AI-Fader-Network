@@ -13,12 +13,14 @@ import argparse
 
 #L'utilisation du parser a été inspiré du code impélmenté par les développeur du fader network
 parser = argparse.ArgumentParser(description='Train the fader Network')
+
 parser.add_argument("--batch_size", type = int, default = 32, help= "Size of the batch used during the training")
 parser.add_argument("--img_path", type = str, default = "data/img_align_celeba", help= "Path to images")
 parser.add_argument("--attr_path" ,type = str, default = "data/attributes.npz", help = "path to attributes")
 parser.add_argument("--attr", type = str, default= "Smiling,Male", help= "Considered attributes to train the network with")
 parser.add_argument("--n_epoch", type = int, default = 1000, help = "Numbers of epochs")
 parser.add_argument("--epoch_size", type = int, default = 50000, help = "Number of images seen at each epoch")
+parser.add_argument("--n_images", type = int, default = 202599, help = "Number of images")
 
 params = parser.parse_args()
 
