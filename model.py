@@ -3,35 +3,33 @@ from keras.layers import Conv2D, Conv2DTranspose, ZeroPadding2D, LeakyReLU, Batc
 from keras.models import Model,Sequential
 import numpy as np 
 import tensorflow as tf
-
-###
-from torch.nn import functional as F
-import torch
-
-
 n_layers = 7 
 
 max_filters = 512
 im_size = 256
 
+def compute_accuracy(yt,yp):
+    count = 0
+    for i in range(len(yp)):
+        if tf.argmax(yp[i]) == tf.argmax(yt[i]):
+            count+=1
+    return count/len(yp) 
 
-def attr_loss(y_true, y_preds, used_loss = tf.nn.softmax_cross_entropy_with_logits):
+
+def attr_loss_accuracy(y_true, y_preds, used_loss = tf.nn.softmax_cross_entropy_with_logits):
     bs = y_true.shape[0]
     n_attr = y_true.shape[-1]
     loss = 0
-    # loss2 = 0
+    accuracy = []
 
     for i in range(0,n_attr,2):
         yt = y_true[:, i:i+2]
         yp = y_preds[:, i : i+2]
         loss += tf.reduce_sum(used_loss(yt,yp))/bs
-        
-        # npr = torch.tensor(yp.numpy())
-        # ntr = torch.tensor(yt.numpy())
-        # loss2 += F.cross_entropy(npr, ntr)
-        # print("loss : ", used_loss(yt,yp), "loss2", loss2)
-        # loss3 = F.cross_entropy(npr, ntr[:, 1])
-    return loss 
+        accuracy.append(compute_accuracy(yt, yp))
+
+
+    return loss, tf.reduce_mean(accuracy)
 
 def create_autoencoder(n_attr = 4): 
     encoder = Sequential(name = "encoder")
@@ -78,6 +76,37 @@ def create_discriminator(n_attr = 4):
 
     return discriminator
 
+class Classifier(keras.Model):
+    def __init__(self, n_attr = 4):
+        super(Classifier, self).__init__()
+        self.model, _  = create_autoencoder(0)
+        self.model.add(512, activation = LeakyReLU(0.2))
+        self.model.add(Dense(n_attr))
+        self.model.add(Reshape((n_attr,)))
+
+    def compile(self, optimizer, loss):
+        super(Classifier, self).compile()
+        self.opt = optimizer
+        self.loss = loss
+
+    @tf.function
+    def train_step(self, data):
+        x,y = data
+        self.model.trainable = True
+        with tf.GradientTape() as tape:
+
+            y_preds = self.model(x)
+            loss , acc= self.loss(y, y_preds)
+
+        grads = tape.gradient(loss, self.discriminator.trainable_weights)
+        self.dis_opt.apply_gradients(zip(grads, self.discriminator.trainable_weights))
+
+        return loss, acc
+
+
+
+    def call(self, x):
+        return self.model(x)
 
 class AutoEncoder(keras.Model):
     """
@@ -92,6 +121,8 @@ class AutoEncoder(keras.Model):
 
     def decode(self, z, y):
         # Le décodeur prend en entrée la concaténation de z et de y selon l'axe des colones
+
+        # Pour certaine raison, le graph (eagerly mode = False) n'accepte pas le numpy array dans cette methode, on transform alors y en tenseur
         if type(y) != type(z):
             y = tf.constant(y)
         y = tf.expand_dims(y, axis = 1)
@@ -120,13 +151,30 @@ class Fader(keras.Model):
         self.lambda_dis = 0
     
 
-    def compile(self, ae_opt, dis_opt, ae_loss, dis_loss = attr_loss, run_eagerly = False):
+    def compile(self, ae_opt, dis_opt, ae_loss, dis_loss = attr_loss_accuracy, run_eagerly = False):
         super(Fader,self).compile(run_eagerly = run_eagerly)
         self.run_eagerly =run_eagerly
         self.dis_opt = dis_opt
         self.ae_opt = ae_opt
         self.dis_loss = dis_loss
         self.ae_loss = ae_loss
+
+    @tf.function
+    def evaluate_on_val(self,data):
+        x,y = data
+        self.discriminator.trainable = False
+        self.ae.trainable = False
+        z, decoded = self.ae(x,y)
+        y_preds = self.discriminator(z)
+
+        #Discriminator
+        dis_loss, dis_accuracy = self.dis_loss(y, y_preds)
+
+        # Autoencoder
+        ae_loss = self.ae_loss(x, decoded)
+        ae_loss = ae_loss + dis_loss*self.lambda_dis
+
+        return ae_loss, dis_loss, dis_accuracy
 
     #Transformation en graph, accelere l'entrainemnet
     @tf.function
@@ -142,7 +190,7 @@ class Fader(keras.Model):
         z = self.ae.encode(x)
         with tf.GradientTape() as tape:
             y_preds = self.discriminator(z)
-            dis_loss = self.dis_loss(y, y_preds)
+            dis_loss ,dis_accuracy = self.dis_loss(y, y_preds)
 
         grads = tape.gradient(dis_loss, self.discriminator.trainable_weights)
         self.dis_opt.apply_gradients(zip(grads, self.discriminator.trainable_weights))
@@ -156,7 +204,7 @@ class Fader(keras.Model):
             z, decoded = self.ae(x,y)
             dis_preds = self.discriminator(z)
             ae_loss = self.ae_loss(x, decoded)
-            ae_loss = ae_loss + self.dis_loss(y, dis_preds)*self.lambda_dis
+            ae_loss = ae_loss + self.dis_loss(y, dis_preds)[0]*self.lambda_dis
         grads = tape.gradient(ae_loss, self.ae.trainable_weights)
         self.ae_opt.apply_gradients(zip(grads, self.ae.trainable_weights))
             
@@ -164,7 +212,7 @@ class Fader(keras.Model):
 
         self.n_iter+=1
         self.lambda_dis = 0.0001*min(self.n_iter/500000, 1)
-        return ae_loss, dis_loss
+        return ae_loss, dis_loss, dis_accuracy
 
     def train_step(self, data): 
         # Cette fonciton est appelé a chaque step par model.fit()
@@ -178,7 +226,7 @@ class Fader(keras.Model):
         z = self.ae.encode(x)
         with tf.GradientTape() as tape:
             y_preds = self.discriminator(z)
-            dis_loss = self.dis_loss(y, y_preds)
+            dis_loss, dis_accuracy = self.dis_loss(y, y_preds)
 
         grads = tape.gradient(dis_loss, self.discriminator.trainable_weights)
         self.dis_opt.apply_gradients(zip(grads, self.discriminator.trainable_weights))
