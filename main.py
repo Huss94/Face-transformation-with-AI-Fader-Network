@@ -24,7 +24,7 @@ parser.add_argument("--n_images", type = int, default = 202599, help = "Number o
 parser.add_argument("--loading_mode", type = str, default = "preprocessed", help = "2 values : 'preprocessed' or 'direct'. from what the data are loaded npz file or direct data")
 parser.add_argument("--load_in_ram", type= bool, default = False, help = "Si l'ordinateur n'a pas assez de ram pour charger toutes les données en meme temps, mettre False, le programme chargera seuleemnt les batchs de taille défini (32 par default) puis les déchargera après le calcul effectué") 
 parser.add_argument("--resize", type= bool, default = False, help = "Applique le resize a chaque fois qu'une donnée est chargée. Mettre a False si les images on été resized en amont") 
-
+parser.add_argument("--save_path", type= str, default = "models", help = "Indique où enrisitrer le model") 
 
 params = parser.parse_args()
 
@@ -66,7 +66,7 @@ if __name__ == "__main__":
             recon_loss_tab.append(recon_loss)
             dis_loss_tab.append(dis_loss)
             dis_accuracy_tab.append(dis_acc)
-            print(f"{step}/{params.n_epoch}, accuracy = {dis_acc.numpy()}, {round(time() - t, 2)}")
+            print(f"{step}/{params.epoch_size},reonstruction loss : {recon_loss:.2f}, disc_loss : {dis_loss:.2f}, disc_accuracy = {dis_acc.numpy()}, {round(time() - t, 2)}")
             
 
         history['reconstruction_loss'].append(np.mean(recon_loss_tab))
@@ -80,21 +80,16 @@ if __name__ == "__main__":
 
         for step in range(train_indices, val_indices, eval_bs):
             t = time()
-            batch_x, batch_y = Data.load_batch_sequentially(step, step+eval_bs)
+            stepTo = step + eval_bs if step +eval_bs < val_indices else val_indices 
+
+            batch_x, batch_y = Data.load_batch_sequentially(step, stepTo)
             recon_loss, dis_loss, dis_acc = f.evaluate_on_val((batch_x, batch_y))
 
             recon_val_loss.append(recon_loss)
             dis_val_loss.append(dis_loss)
             dis_val_accuracy.append(dis_acc)
 
-            # We do not drop the reminder 
-            if step + 2*eval_bs > val_indices:
-                batch_x, batch_y = Data.load_batch_sequentially(step+eval_bs, val_indices)
-                recon_loss, dis_loss, dis_acc = f.evaluate_on_val((batch_x, batch_y))
-                recon_val_loss.append(recon_loss)
-                dis_val_loss.append(dis_loss)
-                dis_val_accuracy.append(dis_acc)
-            print(time() - t)
+            print(f"{step- train_indices}/{val_indices - train_indices},reonstruction loss : {recon_loss:.2f}, disc_loss : {dis_loss:.2f}, disc_accuracy = {round(dis_acc.numpy(), 3)}, {round(time() - t, 2)}")
 
 
         history['reconstruction_val_loss'].append(np.mean(recon_val_loss))
