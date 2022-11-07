@@ -9,11 +9,19 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Trainong of the calssifier')
 parser.add_argument("--batch_size", type = int, default = 32, help= "Size of the batch used during the training")
-parser.add_argument("--img_path", type = str, default = "data/img_align_celeba", help= "Path to images")
+parser.add_argument("--img_path", type = str, default = "data/img_align_celeba_resized", help= "Path to images")
 parser.add_argument("--attr_path" ,type = str, default = "data/attributes.npz", help = "path to attributes")
 parser.add_argument("--attr", type = str, default= "Smiling", help= "Considered attributes to train the network with")
 parser.add_argument("--n_epoch", type = int, default = 5, help = "Numbers of epochs")
 parser.add_argument("--epoch_size", type = int, default = 50000, help = "Number of images seen at each epoch")
+parser.add_argument("--n_images", type = int, default = 202599, help = "Number of images")
+parser.add_argument("--loading_mode", type = str, default = "preprocessed", help = "2 values : 'preprocessed' or 'direct'. from what the data are loaded npz file or direct data")
+parser.add_argument("--load_in_ram", type= bool, default = False, help = "Si l'ordinateur n'a pas assez de ram pour charger toutes les données en meme temps, mettre False, le programme chargera seuleemnt les batchs de taille défini (32 par default) puis les déchargera après le calcul effectué") 
+parser.add_argument("--resize", type= bool, default = False, help = "Applique le resize a chaque fois qu'une donnée est chargée. Mettre a False si les images on été resized en amont") 
+
+
+# Pour charger toutes les données en ram il faudrait environ 40 go de ram
+# c'est pourquoi on preferera l'argument load_in_ram = false
 
 params = parser.parse_args()
 if __name__ == '__main__':
@@ -21,6 +29,9 @@ if __name__ == '__main__':
     # On reprend les paramètres utilisés par les auteurs de l'article
     train_indices = 162770
     val_indices = train_indices + 19867
+
+    # eval_bs correspond au batch a charger en mémooire pour l'évaluation, afin de pouvoir évaluer en plusieurs fois sur les petites configs
+    eval_bs = 100
 
 
     Data = Loader(params, train_indices, val_indices)
@@ -38,11 +49,11 @@ if __name__ == '__main__':
         acc = []
         for step in range(0, params.epoch_size, params.batch_size):
             t = time()
-            batch_x, batch_y  = Data.load_random_batch(0, train_indices, params.batch_size)
+            batch_x, batch_y  = Data.load_random_batch(1, train_indices, params.batch_size)
             l,a = C.train_step((batch_x, batch_y))
             loss.append(l)
             acc.append(a)
-            print(step, a.numpy(), time() - t)
+            print(f"{step}/{params.n_epoch}, accuracy = {a.numpy()}, {round(time() - t, 2)}")
                 
         history['train_loss'].append(np.mean(loss))
         history['train_acc'].append(np.mean(acc))
@@ -50,13 +61,23 @@ if __name__ == '__main__':
         #Eval loop 
         loss = []
         acc = []
-        for step in range(train_indices, val_indices, params.batch_size):
+        for step in range(train_indices, val_indices, eval_bs):
             t = time()
             batch_x, batch_y = Data.load_batch_sequentially(step, step+params.batch_size)
             l, a= C.eval_on_batch((batch_x, batch_y))
             loss.append(l)
             acc.append(a)
-            print(step, a, time() - t)
+
+            # We do not drop the reminder for the eval
+            if step + 2*eval_bs > val_indices:
+                batch_x, batch_y = Data.load_batch_sequentially(step + eval_bs, val_indices)
+                l, a = C.eval_on_batch((batch_x, batch_y))
+
+                loss.append(l)
+                acc.append(a)
+
+                
+            print(f"{step- train_indices}/{val_indices - train_indices}, accuracy = {a.numpy()}, {round(time() - t, 2)}")
         
         # Peut nous permettre de tracer un graph.
         history['val_loss'].append(np.mean(loss))
