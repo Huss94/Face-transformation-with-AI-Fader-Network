@@ -18,6 +18,7 @@ parser.add_argument("--n_images", type = int, default = 202599, help = "Number o
 parser.add_argument("--loading_mode", type = str, default = "preprocessed", help = "2 values : 'preprocessed' or 'direct'. from what the data are loaded npz file or direct data")
 parser.add_argument("--load_in_ram", type= bool, default = False, help = "Si l'ordinateur n'a pas assez de ram pour charger toutes les données en meme temps, mettre False, le programme chargera seuleemnt les batchs de taille défini (32 par default) puis les déchargera après le calcul effectué") 
 parser.add_argument("--resize", type= bool, default = False, help = "Applique le resize a chaque fois qu'une donnée est chargée. Mettre a False si les images on été resized en amont") 
+parser.add_argument("--save_path", type= str, default = "models", help = "Indique où enrisitrer le model") 
 
 
 # Pour charger toutes les données en ram il faudrait environ 40 go de ram
@@ -28,7 +29,7 @@ if __name__ == '__main__':
 
     # On reprend les paramètres utilisés par les auteurs de l'article
     train_indices = 162770
-    val_indices = train_indices + 19867
+    val_indices = train_indices + 530
 
     # eval_bs correspond au batch a charger en mémooire pour l'évaluation, afin de pouvoir évaluer en plusieurs fois sur les petites configs
     eval_bs = 100
@@ -41,7 +42,7 @@ if __name__ == '__main__':
 
     history = {'train_loss' : [], 'train_acc': [], 'val_loss' : [], 'val_acc' : []}
     best_acc = 0
-    tf.config.run_functions_eagerly(True)
+    # tf.config.run_functions_eagerly(True)
 
     for epoch in range(params.n_epoch):
         #training loop
@@ -53,7 +54,7 @@ if __name__ == '__main__':
             l,a = C.train_step((batch_x, batch_y))
             loss.append(l)
             acc.append(a)
-            print(f"{step}/{params.n_epoch}, accuracy = {a.numpy()}, {round(time() - t, 2)}")
+            print(f"{step}/{params.epoch_size}, accuracy = {a.numpy()}, {round(time() - t, 2)}")
                 
         history['train_loss'].append(np.mean(loss))
         history['train_acc'].append(np.mean(acc))
@@ -63,21 +64,15 @@ if __name__ == '__main__':
         acc = []
         for step in range(train_indices, val_indices, eval_bs):
             t = time()
-            batch_x, batch_y = Data.load_batch_sequentially(step, step+params.batch_size)
+
+            stepTo = step + eval_bs if step +eval_bs < val_indices else val_indices 
+
+            batch_x, batch_y = Data.load_batch_sequentially(step,stepTo)
             l, a= C.eval_on_batch((batch_x, batch_y))
             loss.append(l)
             acc.append(a)
 
-            # We do not drop the reminder for the eval
-            if step + 2*eval_bs > val_indices:
-                batch_x, batch_y = Data.load_batch_sequentially(step + eval_bs, val_indices)
-                l, a = C.eval_on_batch((batch_x, batch_y))
-
-                loss.append(l)
-                acc.append(a)
-
-                
-            print(f"{step- train_indices}/{val_indices - train_indices}, accuracy = {a.numpy()}, {round(time() - t, 2)}")
+            print(f"{step- train_indices}/{val_indices - train_indices}, accuracy = {round(a.numpy(), 3)}, {round(time() - t, 2)}")
         
         # Peut nous permettre de tracer un graph.
         history['val_loss'].append(np.mean(loss))
@@ -85,7 +80,7 @@ if __name__ == '__main__':
 
         if history['val_acc'][-1] > best_acc: 
             best_acc = history['val_acc'][-1]
-            save_model(C, 'classifier')
+            save_model(C, name = 'classifier', folder_name=params.save_path)
 
 
 

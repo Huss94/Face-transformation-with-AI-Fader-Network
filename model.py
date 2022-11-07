@@ -18,11 +18,11 @@ def compute_accuracy(yt,yp):
 
 def attr_loss_accuracy(y_true, y_preds, used_loss = tf.nn.softmax_cross_entropy_with_logits):
     bs = y_true.shape[0]
-    n_attr = y_true.shape[-1]
+    cat = y_true.shape[-1]
     loss = 0
     accuracy = []
 
-    for i in range(0,n_attr,2):
+    for i in range(0,cat,2):
         yt = y_true[:, i:i+2]
         yp = y_preds[:, i : i+2]
         loss += tf.reduce_sum(used_loss(yt,yp))/bs
@@ -31,12 +31,12 @@ def attr_loss_accuracy(y_true, y_preds, used_loss = tf.nn.softmax_cross_entropy_
 
     return loss, tf.reduce_mean(accuracy)
 
-def create_autoencoder(n_attr = 4): 
+def create_autoencoder(n_attr = 2): 
     encoder = Sequential()
     encoder.add(keras.Input(shape=(im_size, im_size, 3)))
 
     decoder = Sequential()
-    decoder.add(keras.Input(shape = (2, 2, 512 + n_attr)))
+    decoder.add(keras.Input(shape = (2, 2, 512 + 2*n_attr)))
 
     for i in range(n_layers):
         nb_filters_enc = min(16*2**i, max_filters)
@@ -71,8 +71,8 @@ def create_discriminator(n_attr):
     discriminator.add(BatchNormalization())
     discriminator.add(Dropout(0.3))
     discriminator.add(Dense(512, activation=LeakyReLU(0.2)))
-    discriminator.add(Dense(n_attr))
-    discriminator.add(Reshape((n_attr,)))
+    discriminator.add(Dense(2*n_attr))
+    discriminator.add(Reshape((2*n_attr,)))
 
     return discriminator
 
@@ -125,7 +125,7 @@ class AutoEncoder(keras.Model):
     """
     La présence de cette classe est du au fait que le decoder a besoin de la represéntation latente z, et des attributs y pour reconstituer l'image avec l'attribut y 
     """
-    def __init__(self, n_attr = 4):
+    def __init__(self, n_attr = 2):
         super(AutoEncoder, self).__init__()
         self.encoder, self.decoder = create_autoencoder(n_attr)
 
@@ -158,7 +158,7 @@ class AutoEncoder(keras.Model):
 class Fader(keras.Model):
     def __init__(self, params):
         super(Fader, self).__init__()
-        self.ae = create_autoencoder(params.n_attr)
+        self.ae = AutoEncoder(params.n_attr)
         self.discriminator = create_discriminator(params.n_attr)
         self.n_iter = 0
         self.lambda_dis = 0
