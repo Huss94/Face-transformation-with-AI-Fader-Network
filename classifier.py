@@ -29,10 +29,10 @@ if __name__ == '__main__':
 
     # On reprend les paramètres utilisés par les auteurs de l'article
     train_indices = 162770
-    val_indices = train_indices + 530
+    val_indices = train_indices + 19867 
 
     # eval_bs correspond au batch a charger en mémooire pour l'évaluation, afin de pouvoir évaluer en plusieurs fois sur les petites configs
-    eval_bs = 100
+    eval_bs = 100 
 
 
     Data = Loader(params, train_indices, val_indices)
@@ -54,7 +54,7 @@ if __name__ == '__main__':
             l,a = C.train_step((batch_x, batch_y))
             loss.append(l)
             acc.append(a)
-            print(f"{step}/{params.epoch_size}, accuracy = {a.numpy()}, {round(time() - t, 2)}")
+            print(f"epoch : {epoch}/{params.n_epoch}, {step}/{params.epoch_size}, accuracy = {a.numpy():.2f}, calculé en : {time() - t:.2f}s")
                 
         history['train_loss'].append(np.mean(loss))
         history['train_acc'].append(np.mean(acc))
@@ -72,7 +72,7 @@ if __name__ == '__main__':
             loss.append(l)
             acc.append(a)
 
-            print(f"{step- train_indices}/{val_indices - train_indices}, accuracy = {round(a.numpy(), 3)}, {round(time() - t, 2)}")
+            print(f"{step- train_indices}/{val_indices - train_indices}, accuracy = {a.numpy():.2f}, {time() - t:.2f}")
         
         # Peut nous permettre de tracer un graph.
         history['val_loss'].append(np.mean(loss))
