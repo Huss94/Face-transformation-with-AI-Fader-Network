@@ -74,6 +74,7 @@ def process_attributes():
 
 
 
+
 process_images()
 process_attributes()
 

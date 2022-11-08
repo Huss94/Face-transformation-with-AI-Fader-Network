@@ -25,6 +25,7 @@ parser.add_argument("--loading_mode", type = str, default = "preprocessed", help
 parser.add_argument("--load_in_ram", type= bool, default = False, help = "Si l'ordinateur n'a pas assez de ram pour charger toutes les données en meme temps, mettre False, le programme chargera seuleemnt les batchs de taille défini (32 par default) puis les déchargera après le calcul effectué") 
 parser.add_argument("--resize", type= bool, default = False, help = "Applique le resize a chaque fois qu'une donnée est chargée. Mettre a False si les images on été resized en amont") 
 parser.add_argument("--save_path", type= str, default = "models", help = "Indique où enrisitrer le model") 
+parser.add_argument("--classifier", type= str, default = '', help = 'path to the trained classifier if classifier is given')
 
 params = parser.parse_args()
 
@@ -35,7 +36,7 @@ if __name__ == "__main__":
     Data = Loader(params, train_indices, val_indices)
 
     #eval_bs est le nombre de fichier a charger d'un coup dans la ram 
-    eval_bs = 100
+    eval_bs = 32 
 
     f = Fader(params)
     
@@ -51,6 +52,7 @@ if __name__ == "__main__":
     history['reconstruction_loss'] = []
     history['discriminator_loss'] = []
     history['dis_accuracy'] = []
+    best_val_loss = np.inf
     for epoch in range(params.n_epoch):
 
         #Training
@@ -66,7 +68,7 @@ if __name__ == "__main__":
             recon_loss_tab.append(recon_loss)
             dis_loss_tab.append(dis_loss)
             dis_accuracy_tab.append(dis_acc)
-            print(f"{step}/{params.epoch_size},reonstruction loss : {recon_loss:.2f}, disc_loss : {dis_loss:.2f}, disc_accuracy = {dis_acc.numpy()}, {round(time() - t, 2)}")
+            print(f"epoch : {epoch}/{params.n_epoch}, {step}/{params.epoch_size},reonstruction loss : {recon_loss:.2f}, disc_loss : {dis_loss:.2f}, disc_accuracy = {dis_acc.numpy()}, {round(time() - t, 2)}")
             
 
         history['reconstruction_loss'].append(np.mean(recon_loss_tab))
@@ -78,6 +80,7 @@ if __name__ == "__main__":
         dis_val_loss = []
         dis_val_accuracy = []
 
+        print("Evaluation du model :")
         for step in range(train_indices, val_indices, eval_bs):
             t = time()
             stepTo = step + eval_bs if step +eval_bs < val_indices else val_indices 
@@ -95,6 +98,13 @@ if __name__ == "__main__":
         history['reconstruction_val_loss'].append(np.mean(recon_val_loss))
         history['discriminator_val_loss'].append(np.mean(dis_val_loss))
         history['dis_val_accuracy'].append(np.mean(dis_val_accuracy))
+
+        # Sauvegarder le meilleur model a chaque epoch
+        if history['reconstruction_val_loss'][-1] < best_val_loss:
+            best_val_loss = history['reconstruction_val_loss'][-1]
+            save_model(f, "fader_best_val_loss", params.save_path)
+        
+
 
        
 
