@@ -20,7 +20,9 @@ parser.add_argument("--load_in_ram", type= bool, default = False, help = "Si l'o
 parser.add_argument("--n_images", type = int, default = 202599, help = "Number of images in the dataset")
 parser.add_argument("--offset", type = int, default = 0, help = "Décalage dans la base de test")
 parser.add_argument("--save_path", type = str, default = "images", help = "Chemin de sauvegarde l'image")
+parser.add_argument("--hasardous_indices", type = bool, default = True, help = "Défini si on prend des données hasardeuse dans la base de test")
 params = parser.parse_args()
+
 
 #Paramètres
 ae = load_model(params.model_path, model_type = 'ae')
@@ -45,11 +47,15 @@ alphas = [[1-a, a] for a in alphas]
 
 Data = Loader(params)
 
+if params.hasardous_indices:
+    params.indices = np.random.randint(Data.val_indices, Data.test_indices, bs)
 #Chargement des images 
 # On ne teste que sur la base de test que le reseau n'a jamais vu
+
 if params.indices is not None: 
+    print(params.indices)
     indices = np.array(params.indices)
-    assert (indices >= Data.val_indices).all() and (indices <= Data.test_indices)
+    assert (indices >= Data.val_indices).all() and (indices <= Data.test_indices).all()
     x,y = Data.load_batch(params.indices)
 else: 
     ind_min = Data.val_indices + params.offset
