@@ -77,11 +77,20 @@ class Loader():
         return im
 
     def prepare_attributes(self, params):
-        considered_attr = params.attr.replace(' ', '').split(',')
-        params.n_attr = len(considered_attr)
         attributes = np.load(self.attr_path, allow_pickle=True)['arr_0'].item()
+        if params.attr == '*':
+            params.attr = list(attributes.keys())
+
+        else:
+            # np.unique evite que l'utilisateur entre 2 fois le meme attribut
+            params.attr = np.unique(params.attr.replace(' ', '').split(','))
+            check = np.isin(params.attr, list(attributes.keys()))
+            if not check.all():
+                raise ValueError(f"Les attribut {params.attr[np.where(check == False)]} ne sont pas pris en compte")
+
+        params.n_attr = len(params.attr)
         attr = None
-        for p in considered_attr:
+        for p in params.attr:
             for i in range(2):
                 formated_attr = np.reshape(attributes[p] == i, (len(attributes[p]), 1))
                 if attr is None:
