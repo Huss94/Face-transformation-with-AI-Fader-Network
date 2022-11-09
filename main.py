@@ -18,7 +18,7 @@ parser = argparse.ArgumentParser(description='Train the fader Network')
 parser.add_argument("--batch_size", type = int, default = 32, help= "Size of the batch used during the training")
 parser.add_argument("--img_path", type = str, default = "data/img_align_celeba_resized", help= "Path to images. It can be the directory of the image, or the npz file")
 parser.add_argument("--attr_path" ,type = str, default = "data/attributes.npz", help = "path to attributes")
-parser.add_argument("--attr", type = str, default= "Smiling,Male", help= "Considered attributes to train the network with")
+parser.add_argument("--attr", type = str, default= "Smiling", help= "Considered attributes to train the network with")
 parser.add_argument("--n_epoch", type = int, default = 1000, help = "Numbers of epochs")
 parser.add_argument("--epoch_size", type = int, default = 50000, help = "Number of images seen at each epoch")
 parser.add_argument("--n_images", type = int, default = 202599, help = "Number of images")
@@ -31,16 +31,20 @@ parser.add_argument("--classifier_path", type= str, default = 'models/classifier
 params = parser.parse_args()
 
 if __name__ == "__main__":
-    train_indices = 162770
-    val_indices = train_indices + 19867
 
-    Data = Loader(params, train_indices, val_indices)
+    Data = Loader(params)
+    if (len(params.attr) > 1): 
+        raise ValueError("Le modèle ne doit etre entrainé que sur un seul attibut")
+    train_indices = Data.train_indices
+    val_indices = Data.val_indices
 
     #eval_bs est le nombre de fichier a charger d'un coup dans la ram 
     eval_bs = 10 
 
+    # Création des models
     f = Fader(params)
-    C = load_classifier(params.classifier_path)
+    C = load_model(params.classifier_path, model_type = 'c')
+    C.training = False
 
     
     f.compile(
@@ -76,12 +80,12 @@ if __name__ == "__main__":
             t = time()
             batch_x, batch_y = Data.load_random_batch(1, train_indices, params.batch_size)
             recon_loss, dis_loss,  dis_acc= f.train_step((batch_x, batch_y))
-
+            save_model_weights(f.ae, "Ae")
 
             recon_loss_tab.append(recon_loss)
             dis_loss_tab.append(dis_loss)
             dis_accuracy_tab.append(dis_acc)
-            print(f"epoch : {epoch}/{params.n_epoch}, {step}/{params.epoch_size},reonstruction loss : {recon_loss:.2f}, disc_loss : {dis_loss:.2f}, disc_accuracy = {dis_acc.numpy()}, {round(time() - t, 2)}")
+            print(f"epoch : {epoch}/{params.n_epoch}, {step}/{params.epoch_size},reonstruction loss : {recon_loss:.2f}, disc_loss : {dis_loss:.2f}, disc_accuracy = {dis_acc.numpy()}, {round(time() - t, 2)}s")
             
 
         history['reconstruction_loss'].append(np.mean(recon_loss_tab))
@@ -103,7 +107,7 @@ if __name__ == "__main__":
             batch_x, batch_y = Data.load_batch_sequentially(step, stepTo)
             recon_loss, dis_loss, dis_acc = f.evaluate_on_val((batch_x, batch_y))
             clf_l, clf_a  = C.eval_on_recons_attributes_batch((batch_x, tf.Variable(batch_y)), f) 
-            
+
             clf_loss.append(clf_l)
             clf_acc.append(clf_a)
 
@@ -124,15 +128,10 @@ if __name__ == "__main__":
         # On a 2 criètres pour la sauvegarde du model, celui qui reconstruit le mieux (plus petite reconstruciton loss)
         # Et celui dont le classifier entrainé en amont reconnait les attributs utilisé pour reconstruire l'image
         if history['reconstruction_val_loss'][-1] < best_val_loss:
+            # En réalité il suffit de sauvegarder l'autoencoder, le discriminator ne servant a rien pour l'inférance
             best_val_loss = history['reconstruction_val_loss'][-1]
-            save_model(f, "fader_best_val_loss", params.save_path)
+            save_model_weights(f.ae, "Ae_best_loss")
         if history['classifier_acc'][-1] > best_val_acc:
             best_val_acc = history['classifier_acc'][-1]
-            save_model(f, "fader_best_val_acc", params.save_path)
+            save_model_weights(f.ae, "Ae_best_acc")
         
-        
-
-
-       
-
-    
