@@ -4,13 +4,17 @@ import tensorflow as tf
 from utils import vstack, normalize
 import glob
 class Loader():
-    def __init__(self, params, train_ind, val_ind):
+    def __init__(self, params):
         self.img_path = params.img_path
         self.attr_path = params.attr_path
         self.attributes =  self.prepare_attributes(params)
-        self.train_ind = train_ind
-        self.val_ind = val_ind
         self.need_to_resize = params.resize
+        self.n_images = params.n_images
+
+        # Séparation des datasets 
+        self.train_indices = int(self.n_images*0.8)
+        self.val_indices = self.train_indices + int(self.n_images*0.1)
+        self.test_indices = self.n_images
 
         self.data_loaded_in_ram = params.load_in_ram
         if self.data_loaded_in_ram:
@@ -45,7 +49,7 @@ class Loader():
         return self.load_batch(indices)
 
     def load_batch_sequentially(self,ind_min, ind_max):
-        indices = range(ind_min, ind_max + 1) 
+        indices = range(ind_min, ind_max) 
         return self.load_batch(indices)
 
     def load_batch(self, indices):
@@ -77,16 +81,19 @@ class Loader():
         return im
 
     def prepare_attributes(self, params):
+        #params.attr est un string : 
         attributes = np.load(self.attr_path, allow_pickle=True)['arr_0'].item()
-        if params.attr == '*':
-            params.attr = list(attributes.keys())
+        if not isinstance(params.attr, (list, np.ndarray)):
+            if params.attr == '*':
+                params.attr = list(attributes.keys())
 
-        else:
-            # np.unique evite que l'utilisateur entre 2 fois le meme attribut
-            params.attr = np.unique(params.attr.replace(' ', '').split(','))
-            check = np.isin(params.attr, list(attributes.keys()))
-            if not check.all():
-                raise ValueError(f"Les attribut {params.attr[np.where(check == False)]} ne sont pas pris en compte")
+            else:
+                # np.unique evite que l'utilisateur entre 2 fois le meme attribut
+                params.attr = np.unique(params.attr.replace(' ', '').split(','))
+                check = np.isin(params.attr, list(attributes.keys()))
+                if not check.all():
+                    raise ValueError(f"Les attribut {params.attr[np.where(check == False)]} ne sont pas pris en compte")
+        
 
         params.n_attr = len(params.attr)
         attr = None

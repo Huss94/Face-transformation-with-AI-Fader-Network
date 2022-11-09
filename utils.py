@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 import os 
 import pickle
-from model import Classifier
+from model import Classifier, Fader, AutoEncoder
 
 def vstack(array1, array2):
     try:
@@ -15,9 +15,27 @@ def vstack(array1, array2):
 
     return new_array
 
+def hstack(array1, array2):
+    try:
+        new_array = np.hstack((array1,array2))
+    except ValueError:
+        if len(array1) == 0:
+            return array2
+        elif len(array2) == 0:
+            return array1
+
+    return new_array
+
+
+
 def normalize(image):    
     # Normalization entre -1 et 1 
     return image/127.5 -1
+
+def denormalize(image):
+    im = np.array(image)
+    im = 127.5*(im + 1)
+    return np.uint8(im)
 
 def save_model(model, name, folder_name= 'models', pickle_save = False):
     if not  os.path.isdir(folder_name):
@@ -33,12 +51,32 @@ def save_model(model, name, folder_name= 'models', pickle_save = False):
 
 
 def save_model_weights(model, name, folder_name ='models'):
-    print("Sauvegarde des poids du reseau")
-    model.save_weights(folder_name + '/' + name + '_weights')
-    np.save(folder_name + '/' + name + '_params', model.params)
 
-def load_classifier(path, params = '_params.npy', weights ='_weights'):
-    c_params = np.load(path + params, allow_pickle = True).item()
-    C = Classifier(c_params)
-    C.load_weights(path + weights)
-    return C
+    print("Sauvegarde des poids du reseau")
+    model.save_weights(folder_name + '/' + name + '/' + 'weights')
+    np.save(folder_name + '/' + name + '/' + 'params', model.params)
+
+def load_model(path, model_type, params_name = 'params.npy', weights_name ='weights'):
+    """
+    Charge un model, uniqnument pour l'inférence ce modèle ne peut pas etre entrainer étant donnée qu'on enrigistre pas le statut des optimizers 
+    -----  
+    Parameters : 
+    path : str, chemin vers le dossier contenant le modèle
+    param_name : str, nom du fichier contenant les paramètres du modele
+    weights_name : str, nom du fichier contenantl les poids du modèle
+    model_type : str, 'c' pour un classifier, 'f' pour un fader, 'ae' pour un autoencoder
+    """
+    params = np.load(path + '/'+ params_name, allow_pickle = True).item()
+    if model_type == 'c':
+        model = Classifier(params)
+    elif model_type =='f':
+        model = Fader(params)
+    elif model_type =='ae':
+        model = AutoEncoder(params)
+    else: 
+        raise ValueError(f"invalid model_type = {model_type}, possible value are 'c', 'f' or 'ae'")
+
+    model.load_weights(path + '/' +weights_name)
+    model.trainable = False
+    return model
+

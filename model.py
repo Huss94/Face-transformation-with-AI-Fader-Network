@@ -129,7 +129,7 @@ class Classifier(keras.Model):
         # On verifie que les attributs pour le fader sont des attributs pour lesquels le classifier est entrainé
         assert np.isin(fader.params.attr, self.params.attr).all()
 
-        z = fader.ae.encode(x)
+        z = fader.ae(x)
         #Faire correspondre les attributs du classifier avec ceux du fader
         loss = []
         acc = []
@@ -166,9 +166,10 @@ class AutoEncoder(keras.Model):
     """
     La présence de cette classe est du au fait que le decoder a besoin de la represéntation latente z, et des attributs y pour reconstituer l'image avec l'attribut y 
     """
-    def __init__(self, n_attr = 2):
+    def __init__(self, params):
         super(AutoEncoder, self).__init__()
-        self.encoder, self.decoder = create_autoencoder(n_attr)
+        self.encoder, self.decoder = create_autoencoder(params.n_attr)
+        self.params= params
 
     def encode(self, x):
         return self.encoder(x)
@@ -189,8 +190,15 @@ class AutoEncoder(keras.Model):
         
     
 
-    def call(self, x, y):
+    def call(self, x, y = None, mode = ''):
         z = self.encode(x)
+
+        if y is None:
+            return z
+        
+        if mode == 'decode':
+            return self.decode(z,y)
+        
         return z, self.decode(z, y)
 
 
@@ -198,7 +206,7 @@ class Fader(keras.Model):
     def __init__(self, params):
         super(Fader, self).__init__()
         self.params = params
-        self.ae = AutoEncoder(params.n_attr)
+        self.ae = AutoEncoder(params)
         self.discriminator = create_discriminator(params.n_attr)
         self.n_iter = 0
         self.lambda_dis = 0
@@ -241,7 +249,7 @@ class Fader(keras.Model):
         self.discriminator.trainable = True
         self.ae.trainable = False
 
-        z = self.ae.encode(x)
+        z = self.ae(x)
         with tf.GradientTape() as tape:
             y_preds = self.discriminator(z)
             dis_loss ,dis_accuracy = self.dis_loss(y, y_preds)
@@ -261,8 +269,6 @@ class Fader(keras.Model):
             ae_loss = ae_loss + self.dis_loss(y, dis_preds)[0]*self.lambda_dis
         grads = tape.gradient(ae_loss, self.ae.trainable_weights)
         self.ae_opt.apply_gradients(zip(grads, self.ae.trainable_weights))
-            
-
 
         self.n_iter+=1
         self.lambda_dis = 0.0001*min(self.n_iter/500000, 1)

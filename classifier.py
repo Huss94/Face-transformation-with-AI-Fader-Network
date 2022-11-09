@@ -7,7 +7,7 @@ from utils import save_model, save_model_weights
 from time import time
 import argparse
 
-parser = argparse.ArgumentParser(description='Trainong of the calssifier')
+parser = argparse.ArgumentParser(description='Training of the calssifier')
 parser.add_argument("--batch_size", type = int, default = 32, help= "Size of the batch used during the training")
 parser.add_argument("--img_path", type = str, default = "data/img_align_celeba_resized", help= "Path to images")
 parser.add_argument("--attr_path" ,type = str, default = "data/attributes.npz", help = "path to attributes")
@@ -28,14 +28,14 @@ params = parser.parse_args()
 if __name__ == '__main__':
 
     # On reprend les paramètres utilisés par les auteurs de l'article
-    train_indices = 162770
-    val_indices = train_indices + 19867 
+    Data = Loader(params)
+    train_indices = Data.train_indices
+    val_indices = Data.val_indices
 
     # eval_bs correspond au batch a charger en mémooire pour l'évaluation, afin de pouvoir évaluer en plusieurs fois sur les petites configs
     eval_bs = 10 
 
 
-    Data = Loader(params, train_indices, val_indices)
 
     C = Classifier(params)
     C.compile(optimizer= keras.optimizers.Adam(learning_rate=0.0002))
