@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow import keras
 from loader import Loader
 import numpy as np
-from utils import save_model
+from utils import save_model, save_model_weights
 from time import time
 import argparse
 
@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser(description='Trainong of the calssifier')
 parser.add_argument("--batch_size", type = int, default = 32, help= "Size of the batch used during the training")
 parser.add_argument("--img_path", type = str, default = "data/img_align_celeba_resized", help= "Path to images")
 parser.add_argument("--attr_path" ,type = str, default = "data/attributes.npz", help = "path to attributes")
-parser.add_argument("--attr", type = str, default= "Smiling", help= "Considered attributes to train the network with")
+parser.add_argument("--attr", type = str, default= "*", help= "Considered attributes to train the network with")
 parser.add_argument("--n_epoch", type = int, default = 5, help = "Numbers of epochs")
 parser.add_argument("--epoch_size", type = int, default = 50000, help = "Number of images seen at each epoch")
 parser.add_argument("--n_images", type = int, default = 202599, help = "Number of images")
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     val_indices = train_indices + 19867 
 
     # eval_bs correspond au batch a charger en mémooire pour l'évaluation, afin de pouvoir évaluer en plusieurs fois sur les petites configs
-    eval_bs = 100 
+    eval_bs = 10 
 
 
     Data = Loader(params, train_indices, val_indices)
@@ -44,6 +44,7 @@ if __name__ == '__main__':
     best_acc = 0
     # tf.config.run_functions_eagerly(True)
 
+    print("Training:")
     for epoch in range(params.n_epoch):
         #training loop
         loss = []
@@ -52,9 +53,10 @@ if __name__ == '__main__':
             t = time()
             batch_x, batch_y  = Data.load_random_batch(1, train_indices, params.batch_size)
             l,a = C.train_step((batch_x, batch_y))
+
             loss.append(l)
             acc.append(a)
-            print(f"epoch : {epoch}/{params.n_epoch}, {step}/{params.epoch_size}, accuracy = {a.numpy():.2f}, calculé en : {time() - t:.2f}s")
+            print(f"epoch : {1 + epoch}/{params.n_epoch}, {step}/{params.epoch_size}, accuracy = {a.numpy():.2f}, loss = {l.numpy():.2f} calculé en : {time() - t:.2f}s")
                 
         history['train_loss'].append(np.mean(loss))
         history['train_acc'].append(np.mean(acc))
@@ -62,6 +64,7 @@ if __name__ == '__main__':
         #Eval loop 
         loss = []
         acc = []
+        print("Evaluation : ")
         for step in range(train_indices, val_indices, eval_bs):
             t = time()
 
@@ -80,7 +83,7 @@ if __name__ == '__main__':
 
         if history['val_acc'][-1] > best_acc: 
             best_acc = history['val_acc'][-1]
-            save_model(C, name = 'classifier', folder_name=params.save_path)
+            save_model_weights(C, name = 'classifier', folder_name=params.save_path)
 
 
 

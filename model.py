@@ -78,8 +78,8 @@ def create_discriminator(n_attr):
 
 class Classifier(keras.Model):
     def __init__(self, params):
-        self.params = params 
         super(Classifier, self).__init__()
+        self.params = params
         self.model, _  = create_autoencoder(0)
         self.model.add(Conv2D(512, 4, 2, 'same', activation=LeakyReLU(0.2)))
         self.model.add(BatchNormalization())
@@ -115,6 +115,47 @@ class Classifier(keras.Model):
         self.opt.apply_gradients(zip(grads, self.trainable_weights))
 
         return loss, acc
+    
+    @tf.function
+    def eval_on_recons_attributes_batch(self, data, fader):
+        """
+        Le but de cette fonction est d'évaluer les performances du sur des images reconstruits avec des attibuts hasardeux
+        """
+        x,y = data
+        y_const = tf.identity(y)
+        
+        fader.trainable = False
+        self.trainable = False
+        # On verifie que les attributs pour le fader sont des attributs pour lesquels le classifier est entrainé
+        assert np.isin(fader.params.attr, self.params.attr).all()
+
+        z = fader.ae.encode(x)
+        #Faire correspondre les attributs du classifier avec ceux du fader
+        loss = []
+        acc = []
+        bs = y.shape[0]
+        for i,attr in enumerate(fader.params.attr):
+            j = 2*i
+            clf_ind = 2*self.params.attr.index(attr)
+            for v in range(2):
+                y.assign(y_const) 
+                y[:, j:j+2].assign(tf.zeros((bs,2))) # = 0
+                y[:, j+v].assign(tf.ones((bs))) # = 1
+                # y_copy = y.numpy()
+                # y_copy[:, j:j+2] = 0
+                # y_copy[:, j+v] = 1
+                output = fader.ae.decode(z, y_const)
+                if v == 0 : 
+                    clf_preds = self(output)[:, clf_ind : clf_ind +2]
+                else:
+                    clf_preds = tf.concat((clf_preds, self(output)[:, clf_ind: clf_ind +2]), 1)
+            l, a = attr_loss_accuracy(y, clf_preds)
+            loss.append(l)
+            acc.append(a)
+
+
+        fader.trainable = True
+        return tf.reduce_mean(loss), tf.reduce_mean(acc)
 
 
     def call(self, x):
@@ -135,9 +176,7 @@ class AutoEncoder(keras.Model):
     def decode(self, z, y):
         # Le décodeur prend en entrée la concaténation de z et de y selon l'axe des colones
 
-        # Pour certaine raison, le graph (eagerly mode = False) n'accepte pas le numpy array dans cette methode, on transform alors y en tenseur
-        if type(y) != type(z):
-            y = tf.constant(y)
+        # Pour certaine raison, le graph (eagerly mode = False) n'accepte pas le numpy array dans cette methode, on utilisera alors les tenseurs
         y = tf.expand_dims(y, axis = 1)
         y = tf.expand_dims(y, axis = 2)
         y = tf.repeat(y, 2, axis = 1)
@@ -158,6 +197,7 @@ class AutoEncoder(keras.Model):
 class Fader(keras.Model):
     def __init__(self, params):
         super(Fader, self).__init__()
+        self.params = params
         self.ae = AutoEncoder(params.n_attr)
         self.discriminator = create_discriminator(params.n_attr)
         self.n_iter = 0
