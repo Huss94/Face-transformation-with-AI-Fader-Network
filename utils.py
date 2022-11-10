@@ -56,14 +56,14 @@ def save_model_weights(model, name, folder_name ='models', get_optimizers = Fals
     model.save_weights(folder_name + '/' + name + '/' + 'weights')
     np.save(folder_name + '/' + name + '/' + 'params', model.params)
 
-    if get_optimizers:
-        for i, opt in enumerate(model.get_optimizers()):
-            if not os.path.isdir(folder_name + '/' + name + '/' + 'optimizers'):
-                os.mkdir(folder_name + '/' + name + '/' + 'optimizers')
+    # if get_optimizers:
+    #     for i, opt in enumerate(model.get_optimizers()):
+    #         if not os.path.isdir(folder_name + '/' + name + '/' + 'optimizers'):
+    #             os.mkdir(folder_name + '/' + name + '/' + 'optimizers')
 
-            np.save(folder_name + '/' + name + '/' + 'optimizers/' + str(i), opt.get_weights())
+    #         np.save(folder_name + '/' + name + '/' + 'optimizers/' + str(i), opt.get_weights(), allow_pickle=True)
 
-def load_model(path, model_type, params_name = 'params.npy', weights_name ='weights', restore_optimizers = False):
+def load_model(path, model_type, params_name = 'params.npy', weights_name ='weights'):
     """
     Charge un model, uniqnument pour l'inférence ce modèle ne peut pas etre entrainer étant donnée qu'on enrigistre pas le statut des optimizers 
     -----  
@@ -86,15 +86,15 @@ def load_model(path, model_type, params_name = 'params.npy', weights_name ='weig
     model.load_weights(path + '/' +weights_name)
     model.trainable = False
     
-    if restore_optimizers:
-        opts = []
-        if not os.path.isdir(path + '/optimizers'): 
-            raise ValueError("Aucun optimizer trouvé")
-        opts_path = glob.glob(path + '/optimizers/*')
-        assert len(opts_path) != 0
-        for opt in opts_path: 
-            opts.append(np.load(opt, allow_pickle=True)) 
-
-        return model, opts
+    # if restore_optimizers:
+    #     opts = []
+    #     if not os.path.isdir(path + '/optimizers'): 
+    #         raise ValueError("Aucun optimizer trouvé")
+    #     opts_path = glob.glob(path + '/optimizers/*')
+    #     assert len(opts_path) != 0
+    #     for opt in opts_path: 
+    #         w  = np.load(opt, allow_pickle=True)
+    #         opts.append(w) 
+    #     return model, opts
     return model
 

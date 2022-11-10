@@ -29,7 +29,7 @@ parser.add_argument("--resize", type= int, default = 0, help = "Applique le resi
 parser.add_argument("--save_path", type= str, default = "models", help = "Indique où enrisitrer le model") 
 parser.add_argument("--classifier_path", type= str, default = '', help = 'path to the trained classifier if classifier is given')
 parser.add_argument("--eval_bs", type= int, default = 32, help = 'Taille avec laquelle on subdivise la pase d\'évaluation')
-parser.add_argument("--model_path", type= str, default = '', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
+parser.add_argument("--model_path", type= str, default = 'models/Fader_backup', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
 
 params = parser.parse_args()
 
@@ -50,8 +50,8 @@ if __name__ == "__main__":
 
     # Création des models
     if params.model_path:
-        f, opt_weights= load_model(params.model_path, 'f', restore_optimizers=True)
-        Data = Loader(f.params)
+        f = load_model(params.model_path, 'f')
+        # Data = Loader(f.params)
     else:
         f = Fader(params)
     
@@ -94,17 +94,11 @@ if __name__ == "__main__":
             batch_x, batch_y = Data.load_random_batch(1, train_indices, params.batch_size)
             recon_loss, dis_loss,  dis_acc= f.train_step((batch_x, batch_y))
 
-            # Si le model est chargé il faut mettr a jour les poids de l'optimizer si on veut continuer le training
-            if params.model_path and step == 0 and epoch == 0:
-                f.set_optimizer_weights(opt_weights)
-                continue
- 
             recon_loss_tab.append(recon_loss)
             dis_loss_tab.append(dis_loss)
             dis_accuracy_tab.append(dis_acc)
             print(f"epoch : {epoch}/{params.n_epoch}, {step}/{params.epoch_size},reonstruction loss : {recon_loss:.2f}, disc_loss : {dis_loss:.2f}, disc_accuracy = {dis_acc.numpy()}, {round(time() - t, 2)}s")
             
-        save_model_weights(f,  "Fader_backup",  params.save_path, get_optimizers=True)
         history['reconstruction_loss'].append(np.mean(recon_loss_tab))
         history['discriminator_loss'].append(np.mean(dis_loss_tab))
         history['dis_accuracy'].append(np.mean(dis_accuracy_tab))
@@ -143,6 +137,10 @@ if __name__ == "__main__":
         history['classifier_loss'].append(np.mean(clf_loss))
         history['classifier_acc'].append(np.mean(clf_loss))
 
+        # On sauvegarde a chaque epoque le fader_network au cas ou la machine crash, on pourra reprendre l'entrainement
+        # save_model_weights prend aussi en compte les poids des opimizers.
+        save_model_weights(f,  "Fader_backup",  params.save_path, get_optimizers=True)
+
         np.save(params.save_path + '/history',history)
         # Sauvegarder le meilleur model a chaque epoch
         # On a 2 criètres pour la sauvegarde du model, celui qui reconstruit le mieux (plus petite reconstruciton loss)
@@ -154,8 +152,4 @@ if __name__ == "__main__":
         if params.classifier_path and history['classifier_acc'][-1] > best_val_acc:
             best_val_acc = history['classifier_acc'][-1]
             save_model_weights(f.ae, "Ae_best_acc", params.save_path)
-        
-        if epoch % 5 == 0 and epoch != 0 : 
-            # On enreistre toute les 5 le fader epoch au cas ou la machine d'entrainement s'arrete, on pourra continuer l'entrainement par la suite
-            save_model_weights(f,  "Fader_backup",  params.save_path, get_optimizers=True)
         
