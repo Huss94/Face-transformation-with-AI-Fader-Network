@@ -218,9 +218,9 @@ class Fader(keras.Model):
         self.lambda_dis = 0
     
 
-    def set_optimizer_weights(self,weights):
-        self.ae_opt.set_weights(weights[0])
-        self.dis_opt.set_weights(weights[1])
+    # def set_optimizer_weights(self,weights):
+    #     self.ae_opt.set_weights(weights[0])
+    #     self.dis_opt.set_weights(weights[1])
 
 
     def get_optimizers(self):
