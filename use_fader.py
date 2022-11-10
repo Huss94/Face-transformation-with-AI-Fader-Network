@@ -10,7 +10,7 @@ from utils import hstack, load_model , denormalize, vstack
 
 
 parser = argparse.ArgumentParser(description='Use the trained fader network on some images')
-parser.add_argument("--model_path", type = str, default = 'models/Ae', help = "Chemin du fader network entrainé")
+parser.add_argument("--model_path", type = str, default = 'models/trained_ae/Ae_best_loss', help = "Chemin du fader network entrainé")
 parser.add_argument("--img_path", type = str, default = "data/img_align_celeba_resized", help= "Path to images. It can be the directory of the image, or the npz file")
 parser.add_argument("--attr_path" ,type = str, default = "data/attributes.npz", help = "path to attributes")
 parser.add_argument("--n_images_to_infer", type = int, default = '5', help = "Nombre d'image a inférer")
@@ -20,7 +20,8 @@ parser.add_argument("--load_in_ram", type= bool, default = False, help = "Si l'o
 parser.add_argument("--n_images", type = int, default = 202599, help = "Number of images in the dataset")
 parser.add_argument("--offset", type = int, default = 0, help = "Décalage dans la base de test")
 parser.add_argument("--save_path", type = str, default = "images", help = "Chemin de sauvegarde l'image")
-parser.add_argument("--hasardous_indices", type = bool, default = True, help = "Défini si on prend des données hasardeuse dans la base de test")
+parser.add_argument("--random_ind", type = int, default = 1, help = "Défini si on prend des données hasardeuse dans la base de test")
+
 params = parser.parse_args()
 
 
@@ -47,21 +48,28 @@ alphas = [[1-a, a] for a in alphas]
 
 Data = Loader(params)
 
-if params.hasardous_indices:
+if params.random_ind and params.indices is None:
     params.indices = np.random.randint(Data.val_indices, Data.test_indices, bs)
 #Chargement des images 
 # On ne teste que sur la base de test que le reseau n'a jamais vu
 
 if params.indices is not None: 
+    if isinstance(params.indices, str):
+        params.indices = [int(i) for i in params.indices.split(',')]
     print(params.indices)
     indices = np.array(params.indices)
-    assert (indices >= Data.val_indices).all() and (indices <= Data.test_indices).all()
+    bs = len(indices)
+
+    # On autorise d'inférer sur la base d'entainement lorque l'utilsateur doenne ses propres indices
+    assert (indices >= 0).all() and (indices <= Data.n_images).all()
+
+    # assert (indices >= Data.val_indices).all() and (indices <= Data.test_indices).all()
     x,y = Data.load_batch(params.indices)
 else: 
     ind_min = Data.val_indices + params.offset
     ind_max = ind_min + params.n_images_to_infer
-    assert ind_min >= Data.val_indices
-    assert ind_max <= Data.test_indices 
+    assert ind_min >= 0
+    assert ind_max <= Data.n_images
 
     x,y = Data.load_batch_sequentially(ind_min,ind_max)
 

@@ -8,17 +8,17 @@ from time import time
 import argparse
 
 parser = argparse.ArgumentParser(description='Training of the calssifier')
-parser.add_argument("--batch_size", type = int, default = 32, help= "Size of the batch used during the training")
 parser.add_argument("--img_path", type = str, default = "data/img_align_celeba_resized", help= "Path to images")
+parser.add_argument("--save_path", type= str, default = "models", help = "Indique où enrisitrer le model") 
 parser.add_argument("--attr_path" ,type = str, default = "data/attributes.npz", help = "path to attributes")
+parser.add_argument("--batch_size", type = int, default = 32, help= "Size of the batch used during the training")
 parser.add_argument("--attr", type = str, default= "*", help= "Considered attributes to train the network with")
 parser.add_argument("--n_epoch", type = int, default = 5, help = "Numbers of epochs")
 parser.add_argument("--epoch_size", type = int, default = 50000, help = "Number of images seen at each epoch")
 parser.add_argument("--n_images", type = int, default = 202599, help = "Number of images")
 parser.add_argument("--loading_mode", type = str, default = "preprocessed", help = "2 values : 'preprocessed' or 'direct'. from what the data are loaded npz file or direct data")
-parser.add_argument("--load_in_ram", type= bool, default = False, help = "Si l'ordinateur n'a pas assez de ram pour charger toutes les données en meme temps, mettre False, le programme chargera seuleemnt les batchs de taille défini (32 par default) puis les déchargera après le calcul effectué") 
-parser.add_argument("--resize", type= bool, default = False, help = "Applique le resize a chaque fois qu'une donnée est chargée. Mettre a False si les images on été resized en amont") 
-parser.add_argument("--save_path", type= str, default = "models", help = "Indique où enrisitrer le model") 
+parser.add_argument("--load_in_ram", type= int, default = 0, help = "Si l'ordinateur n'a pas assez de ram pour charger toutes les données en meme temps, mettre False, le programme chargera seuleemnt les batchs de taille défini (32 par default) puis les déchargera après le calcul effectué") 
+parser.add_argument("--resize", type= int, default = 0, help = "Applique le resize a chaque fois qu'une donnée est chargée. Mettre a False si les images on été resized en amont") 
 
 
 # Pour charger toutes les données en ram il faudrait environ 40 go de ram
