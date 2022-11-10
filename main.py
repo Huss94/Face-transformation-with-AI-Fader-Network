@@ -1,16 +1,17 @@
-import numpy as np 
-import tensorflow as tf
-from tensorflow import keras
-from utils import *
-from model import AutoEncoder, Fader, Classifier
-from loader import Loader
-import cv2 as cv
-import matplotlib.pyplot as plt
-from time import time
-from tqdm import tqdm
 import argparse
 import pickle
+from time import time
 
+import cv2 as cv
+import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from tqdm import tqdm
+
+from loader import Loader
+from model import AutoEncoder, Classifier, Fader
+from utils import *
 
 #L'utilisation du parser a été inspiré du code impélmenté par les développeur du fader network
 parser = argparse.ArgumentParser(description='Train the fader Network')
@@ -80,7 +81,7 @@ if __name__ == "__main__":
 
     best_val_loss = np.inf
     best_val_acc = 0
-    tf.config.run_functions_eagerly(True)
+    # tf.config.run_functions_eagerly(True)
     for epoch in range(params.n_epoch):
 
         #Training
@@ -133,7 +134,7 @@ if __name__ == "__main__":
             dis_val_loss.append(dis_loss)
             dis_val_accuracy.append(dis_acc)
 
-            print(f"{step- train_indices}/{val_indices - train_indices},reonstruction loss : {recon_loss:.2f}, disc_loss : {dis_loss:.2f},clf_acc : {clf_acc:.2f},  disc_accuracy = {dis_acc.numpy():.2f}, {time() - t:.2f}")
+            print(f"{step- train_indices}/{val_indices - train_indices},reonstruction loss : {recon_loss:.2f}, disc_loss : {dis_loss:.2f},clf_acc : {clf_a.numpy():.2f},  disc_accuracy = {dis_acc.numpy():.2f}, {(time() - t):.2f}s")
 
 
         history['reconstruction_val_loss'].append(np.mean(recon_val_loss))
