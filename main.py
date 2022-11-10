@@ -26,7 +26,7 @@ parser.add_argument("--loading_mode", type = str, default = "preprocessed", help
 parser.add_argument("--load_in_ram", type= int, default = 0, help = "Si l'ordinateur n'a pas assez de ram pour charger toutes les données en meme temps, mettre False, le programme chargera seuleemnt les batchs de taille défini (32 par default) puis les déchargera après le calcul effectué") 
 parser.add_argument("--resize", type= int, default = 0, help = "Applique le resize a chaque fois qu'une donnée est chargée. Mettre a False si les images on été resized en amont") 
 parser.add_argument("--save_path", type= str, default = "models", help = "Indique où enrisitrer le model") 
-parser.add_argument("--classifier_path", type= str, default = 'models/trained_classifier', help = 'path to the trained classifier if classifier is given')
+parser.add_argument("--classifier_path", type= str, default = '', help = 'path to the trained classifier if classifier is given')
 parser.add_argument("--eval_bs", type= int, default = 32, help = 'Taille avec laquelle on subdivise la pase d\'évaluation')
 parser.add_argument("--model_path", type= str, default = '', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
 
@@ -53,8 +53,10 @@ if __name__ == "__main__":
         Data = Loader(f.params)
     else:
         f = Fader(params)
-    C = load_model(params.classifier_path, model_type = 'c')
-    C.training = False
+    
+    if params.classifier_path:
+        C = load_model(params.classifier_path, model_type = 'c')
+        C.training = False
 
     f.compile(
         ae_opt= keras.optimizers.Adam(learning_rate=0.0002),
@@ -120,7 +122,9 @@ if __name__ == "__main__":
 
             batch_x, batch_y = Data.load_batch_sequentially(step, stepTo)
             recon_loss, dis_loss, dis_acc = f.evaluate_on_val((batch_x, batch_y))
-            clf_l, clf_a  = C.eval_on_recons_attributes_batch((batch_x, tf.Variable(batch_y)), f) 
+
+            if params.classifier_path:
+                clf_l, clf_a  = C.eval_on_recons_attributes_batch((batch_x, tf.Variable(batch_y)), f) 
 
             clf_loss.append(clf_l)
             clf_acc.append(clf_a)
@@ -146,11 +150,11 @@ if __name__ == "__main__":
             # En réalité il suffit de sauvegarder l'autoencoder, le discriminator ne servant a rien pour l'inférance
             best_val_loss = history['reconstruction_val_loss'][-1]
             save_model_weights(f.ae, "Ae_best_loss", params.save_path)
-        if history['classifier_acc'][-1] > best_val_acc:
+        if params.classifier_path and history['classifier_acc'][-1] > best_val_acc:
             best_val_acc = history['classifier_acc'][-1]
             save_model_weights(f.ae, "Ae_best_acc", params.save_path)
         
         if epoch % 5 == 0 and epoch != 0 : 
-            # On enreistre toute les 5 epoch au cas ou la machine d'entrainement s'arrete, on pourra continuer l'entrainement par la suite
+            # On enreistre toute les 5 le fader epoch au cas ou la machine d'entrainement s'arrete, on pourra continuer l'entrainement par la suite
             save_model_weights(f,  "Fader_backup",  params.save_path, get_optimizers=True)
         
