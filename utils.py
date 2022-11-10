@@ -3,6 +3,7 @@ import tensorflow as tf
 import os 
 import pickle
 from model import Classifier, Fader, AutoEncoder
+import glob
 
 def vstack(array1, array2):
     try:
@@ -50,13 +51,19 @@ def save_model(model, name, folder_name= 'models', pickle_save = False):
         model.save(folder_name + '/' + name)
 
 
-def save_model_weights(model, name, folder_name ='models'):
-
+def save_model_weights(model, name, folder_name ='models', get_optimizers = False):
     print("Sauvegarde des poids du reseau")
     model.save_weights(folder_name + '/' + name + '/' + 'weights')
     np.save(folder_name + '/' + name + '/' + 'params', model.params)
 
-def load_model(path, model_type, params_name = 'params.npy', weights_name ='weights'):
+    if get_optimizers:
+        for i, opt in enumerate(model.get_optimizers()):
+            if not os.path.isdir(folder_name + '/' + name + '/' + 'optimizers'):
+                os.mkdir(folder_name + '/' + name + '/' + 'optimizers')
+
+            np.save(folder_name + '/' + name + '/' + 'optimizers/' + str(i), opt.get_weights())
+
+def load_model(path, model_type, params_name = 'params.npy', weights_name ='weights', restore_optimizers = False):
     """
     Charge un model, uniqnument pour l'inférence ce modèle ne peut pas etre entrainer étant donnée qu'on enrigistre pas le statut des optimizers 
     -----  
@@ -78,5 +85,16 @@ def load_model(path, model_type, params_name = 'params.npy', weights_name ='weig
 
     model.load_weights(path + '/' +weights_name)
     model.trainable = False
+    
+    if restore_optimizers:
+        opts = []
+        if not os.path.isdir(path + '/optimizers'): 
+            raise ValueError("Aucun optimizer trouvé")
+        opts_path = glob.glob(path + '/optimizers/*')
+        assert len(opts_path) != 0
+        for opt in opts_path: 
+            opts.append(np.load(opt, allow_pickle=True)) 
+
+        return model, opts
     return model
 

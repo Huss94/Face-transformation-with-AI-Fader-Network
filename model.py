@@ -88,6 +88,9 @@ class Classifier(keras.Model):
         self.model.add(Reshape((2*params.n_attr,)))
         self.build((None, 256,256,3))
 
+    def get_optimizers(self):
+        return (self.opt,)
+
     def compile(self, optimizer, loss = attr_loss_accuracy):
         super(Classifier, self).compile()
         self.opt = optimizer
@@ -119,7 +122,7 @@ class Classifier(keras.Model):
     @tf.function
     def eval_on_recons_attributes_batch(self, data, fader):
         """
-        Le but de cette fonction est d'évaluer les performances du sur des images reconstruits avec des attibuts hasardeux
+        Le but de cette fonction est d'évaluer les performances du sur des images reconstruits avec des attibuts "hasardeux"
         """
         x,y = data
         y_const = tf.identity(y)
@@ -174,6 +177,9 @@ class AutoEncoder(keras.Model):
     def encode(self, x):
         return self.encoder(x)
 
+    def get_optimizers(self):
+        return (self.opt,)
+
     def decode(self, z, y):
         # Le décodeur prend en entrée la concaténation de z et de y selon l'axe des colones
 
@@ -212,11 +218,18 @@ class Fader(keras.Model):
         self.lambda_dis = 0
     
 
-    def compile(self, ae_opt, dis_opt, ae_loss, dis_loss = attr_loss_accuracy, run_eagerly = False):
-        super(Fader,self).compile(run_eagerly = run_eagerly)
-        self.run_eagerly =run_eagerly
-        self.dis_opt = dis_opt
+    def set_optimizer_weights(self,weights):
+        self.ae_opt.set_weights(weights[0])
+        self.dis_opt.set_weights(weights[1])
+
+
+    def get_optimizers(self):
+        return (self.ae_opt, self.dis_opt)
+
+    def compile(self, ae_opt, dis_opt, ae_loss, dis_loss = attr_loss_accuracy):
+        super(Fader,self).compile()
         self.ae_opt = ae_opt
+        self.dis_opt = dis_opt
         self.dis_loss = dis_loss
         self.ae_loss = ae_loss
 
@@ -231,7 +244,7 @@ class Fader(keras.Model):
         #Discriminator
         dis_loss, dis_accuracy = self.dis_loss(y, y_preds)
 
-        # Autoencoder
+        # Autoencodeodr
         ae_loss = self.ae_loss(x, decoded)
         ae_loss = ae_loss + dis_loss*self.lambda_dis
 
