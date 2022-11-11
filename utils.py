@@ -63,7 +63,7 @@ def save_model_weights(model, name, folder_name ='models', get_optimizers = Fals
 
     #         np.save(folder_name + '/' + name + '/' + 'optimizers/' + str(i), opt.get_weights(), allow_pickle=True)
 
-def load_model(path, model_type, params_name = 'params.npy', weights_name ='weights'):
+def load_model(path, model_type, params_name = 'params.npy', weights_name ='weights' , train = False):
     """
     Charge un model, uniqnument pour l'inférence ce modèle ne peut pas etre entrainer étant donnée qu'on enrigistre pas le statut des optimizers 
     -----  
@@ -84,7 +84,7 @@ def load_model(path, model_type, params_name = 'params.npy', weights_name ='weig
         raise ValueError(f"invalid model_type = {model_type}, possible value are 'c', 'f' or 'ae'")
 
     model.load_weights(path + '/' +weights_name)
-    model.trainable = False
+    model.trainable = train
     
     # if restore_optimizers:
     #     opts = []
