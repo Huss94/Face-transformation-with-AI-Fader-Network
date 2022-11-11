@@ -29,7 +29,7 @@ parser.add_argument("--resize", type= int, default = 0, help = "Applique le resi
 parser.add_argument("--save_path", type= str, default = "models", help = "Indique où enrisitrer le model") 
 parser.add_argument("--classifier_path", type= str, default = '', help = 'path to the trained classifier if classifier is given')
 parser.add_argument("--eval_bs", type= int, default = 32, help = 'Taille avec laquelle on subdivise la pase d\'évaluation')
-parser.add_argument("--model_path", type= str, default = 'models/Fader_backup', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
+parser.add_argument("--model_path", type= str, default = '', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
 
 params = parser.parse_args()
 
@@ -51,7 +51,8 @@ if __name__ == "__main__":
     # Création des models
     if params.model_path:
         f = load_model(params.model_path, 'f')
-        # Data = Loader(f.params)
+        assert params.attr == f.params.attr
+        Data = Loader(params)
     else:
         f = Fader(params)
     
@@ -97,7 +98,7 @@ if __name__ == "__main__":
             recon_loss_tab.append(recon_loss)
             dis_loss_tab.append(dis_loss)
             dis_accuracy_tab.append(dis_acc)
-            print(f"epoch : {epoch}/{params.n_epoch}, {step}/{params.epoch_size},reonstruction loss : {recon_loss:.2f}, disc_loss : {dis_loss:.2f}, disc_accuracy = {dis_acc.numpy()}, {round(time() - t, 2)}s")
+            print(f"epoch : {epoch}/{params.n_epoch}, {step}/{params.epoch_size},reonstruction loss : {recon_loss:.5f}, disc_loss : {dis_loss:.5f}, disc_accuracy = {dis_acc.numpy()}, {round(time() - t, 2)}s")
             
         history['reconstruction_loss'].append(np.mean(recon_loss_tab))
         history['discriminator_loss'].append(np.mean(dis_loss_tab))
@@ -128,14 +129,14 @@ if __name__ == "__main__":
             dis_val_loss.append(dis_loss)
             dis_val_accuracy.append(dis_acc)
 
-            print(f"{step- train_indices}/{val_indices - train_indices},reonstruction loss : {recon_loss:.2f}, disc_loss : {dis_loss:.2f},clf_acc : {clf_a.numpy():.2f},  disc_accuracy = {dis_acc.numpy():.2f}, {(time() - t):.2f}s")
+            print(f"{step- train_indices}/{val_indices - train_indices},reconstruction loss : {recon_loss:.5f}, disc_loss : {dis_loss:.5f},clf_acc : {clf_a.numpy():.2f},  disc_accuracy = {dis_acc.numpy():.2f}, {(time() - t):.2f}s")
 
 
         history['reconstruction_val_loss'].append(np.mean(recon_val_loss))
         history['discriminator_val_loss'].append(np.mean(dis_val_loss))
         history['dis_val_accuracy'].append(np.mean(dis_val_accuracy))
         history['classifier_loss'].append(np.mean(clf_loss))
-        history['classifier_acc'].append(np.mean(clf_loss))
+        history['classifier_acc'].append(np.mean(clf_acc))
 
         # On sauvegarde a chaque epoque le fader_network au cas ou la machine crash, on pourra reprendre l'entrainement
         # save_model_weights prend aussi en compte les poids des opimizers.
