@@ -90,7 +90,7 @@ def save_history(h, path, name = "history.npy"):
         for p in h1:
             h1[p].extend(h[p])
         h = h1
-    np.save(path+ '/' + name)
+    np.save(path+ '/' + name, h)
 
         
 
