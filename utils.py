@@ -85,14 +85,14 @@ def load_model(path, model_type, params_name = 'params.npy', weights_name ='weig
 
 
 def save_history(h, path, name = "history.npy"):
-    if os.path.isfile(path + name):
-        h1= np.load(path+name)
+    if os.path.isfile(path +   '/'+ name):
+        h1= np.load(path+ '/' + name , allow_pickle = True).item()
         for p in h1:
-            h1[p].expend(h[p])
-        np.save(path+name,h1)
+            h1[p].extend(h[p])
+        np.save(path+'/'+name,h1)
     
     else:
-        np.save(path+name, h)
+        np.save(path+ '/' + name)
 
         
 
