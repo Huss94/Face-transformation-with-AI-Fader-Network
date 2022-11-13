@@ -83,6 +83,8 @@ if __name__ == "__main__":
     best_val_loss = np.inf
     best_val_acc = 0
     # tf.config.run_functions_eagerly(True)
+
+    #Boucle d'entrainement
     for epoch in range(params.n_epoch):
 
         #Training
@@ -141,8 +143,8 @@ if __name__ == "__main__":
         # On sauvegarde a chaque epoque le fader_network au cas ou la machine crash, on pourra reprendre l'entrainement
         # save_model_weights prend aussi en compte les poids des opimizers.
         save_model_weights(f,  "Fader_backup",  params.save_path, get_optimizers=True)
+        save_history(history, params.save_path)
 
-        np.save(params.save_path + '/history',history)
         # Sauvegarder le meilleur model a chaque epoch
         # On a 2 criètres pour la sauvegarde du model, celui qui reconstruit le mieux (plus petite reconstruciton loss)
         # Et celui dont le classifier entrainé en amont reconnait les attributs utilisé pour reconstruire l'image
