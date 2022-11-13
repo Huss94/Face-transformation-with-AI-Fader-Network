@@ -89,10 +89,8 @@ def save_history(h, path, name = "history.npy"):
         h1= np.load(path+ '/' + name , allow_pickle = True).item()
         for p in h1:
             h1[p].extend(h[p])
-        np.save(path+'/'+name,h1)
-    
-    else:
-        np.save(path+ '/' + name)
+        h = h1
+    np.save(path+ '/' + name)
 
         
 
