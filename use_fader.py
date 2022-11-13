@@ -10,7 +10,7 @@ from utils import hstack, load_model , denormalize, vstack
 
 
 parser = argparse.ArgumentParser(description='Use the trained fader network on some images')
-parser.add_argument("--model_path", type = str, default = 'models/Ae_best_loss', help = "Chemin du fader network entrainé")
+parser.add_argument("--model_path", type = str, default = 'models/glasses/Ae_best_loss', help = "Chemin du fader network entrainé")
 parser.add_argument("--img_path", type = str, default = "data/img_align_celeba_resized", help= "Path to images. It can be the directory of the image, or the npz file")
 parser.add_argument("--attr_path" ,type = str, default = "data/attributes.npz", help = "path to attributes")
 parser.add_argument("--n_images_to_infer", type = int, default = 10, help = "Nombre d'image a inférer")
@@ -21,7 +21,7 @@ parser.add_argument("--n_images", type = int, default = 202599, help = "Number o
 parser.add_argument("--offset", type = int, default = 0, help = "Décalage dans la base de test")
 parser.add_argument("--save_path", type = str, default = "images", help = "Chemin de sauvegarde l'image")
 parser.add_argument("--alpha_min", type = float, default = 0, help = "Valeur minimal pour les attributs de la forme [alpha_min, alpha_max]")
-parser.add_argument("--alpha_max", type = float, default = 1, help = "Valeur maximal pour les attributs de la forme [alpha_min, alpha_max]")
+parser.add_argument("--alpha_max", type = float, default = 12, help = "Valeur maximal pour les attributs de la forme [alpha_min, alpha_max]")
 parser.add_argument("--random_ind", type = int, default = 1, help = "Défini si on prend des données hasardeuse dans la base de test")
 
 params = parser.parse_args()
