@@ -1,9 +1,10 @@
+#!/usr/bin/env python
 from model import Classifier
 import tensorflow as tf
 from tensorflow import keras
 from loader import Loader
 import numpy as np
-from utils import save_model, save_model_weights
+from utils import *
 from time import time
 import argparse
 
@@ -19,6 +20,7 @@ parser.add_argument("--n_images", type = int, default = 202599, help = "Number o
 parser.add_argument("--loading_mode", type = str, default = "preprocessed", help = "2 values : 'preprocessed' or 'direct'. from what the data are loaded npz file or direct data")
 parser.add_argument("--load_in_ram", type= int, default = 0, help = "Si l'ordinateur n'a pas assez de ram pour charger toutes les données en meme temps, mettre False, le programme chargera seuleemnt les batchs de taille défini (32 par default) puis les déchargera après le calcul effectué") 
 parser.add_argument("--resize", type= int, default = 0, help = "Applique le resize a chaque fois qu'une donnée est chargée. Mettre a False si les images on été resized en amont") 
+parser.add_argument("--model_path", type= str, default = '', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
 
 
 # Pour charger toutes les données en ram il faudrait environ 40 go de ram
@@ -37,11 +39,19 @@ if __name__ == '__main__':
 
 
 
-    C = Classifier(params)
+    if params.model_path:
+        C = load_model(params.model_path, model_type ='c')
+        history = load_history(params.model_path)
+        best_acc = history['val_acc'][-1]
+        assert params.attr == C.params.attr
+
+    else:
+        C = Classifier(params)
+        history = {'train_loss' : [], 'train_acc': [], 'val_loss' : [], 'val_acc' : []}
+        best_acc = 0
+
     C.compile(optimizer= keras.optimizers.Adam(learning_rate=0.0002))
 
-    history = {'train_loss' : [], 'train_acc': [], 'val_loss' : [], 'val_acc' : []}
-    best_acc = 0
     # tf.config.run_functions_eagerly(True)
 
     print("Training:")

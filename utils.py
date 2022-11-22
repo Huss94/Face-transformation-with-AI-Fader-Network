@@ -83,8 +83,8 @@ def load_model(path, model_type, params_name = 'params.npy', weights_name ='weig
     return model
 
 
-def load_history(path : str, name = "history.npy", from_model_path= False):
-    if from_model_path:
+def load_history(path : str, name = "history.npy", parent_folder= False):
+    if parent_folder:
         index = path[::-1].index('/') 
         path = path[:len(path) - index - 1]
 

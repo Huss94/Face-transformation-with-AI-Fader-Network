@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import argparse
 import pickle
 from time import time
@@ -27,7 +28,7 @@ parser.add_argument("--loading_mode", type = str, default = "preprocessed", help
 parser.add_argument("--load_in_ram", type= int, default = 0, help = "Si l'ordinateur n'a pas assez de ram pour charger toutes les données en meme temps, mettre False, le programme chargera seuleemnt les batchs de taille défini (32 par default) puis les déchargera après le calcul effectué") 
 parser.add_argument("--resize", type= int, default = 0, help = "Applique le resize a chaque fois qu'une donnée est chargée. Mettre a False si les images on été resized en amont") 
 parser.add_argument("--save_path", type= str, default = "models", help = "Indique où enrisitrer le model") 
-parser.add_argument("--classifier_path", type= str, default = '', help = 'path to the trained classifier if classifier is given')
+parser.add_argument("--classifier_path", type= str, default = '', help = 'path to the trained classifier if classifier is given (optional)')
 parser.add_argument("--eval_bs", type= int, default = 32, help = 'Taille avec laquelle on subdivise la pase d\'évaluation')
 parser.add_argument("--model_path", type= str, default = '', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
 
@@ -49,29 +50,21 @@ if __name__ == "__main__":
     eval_bs = params.eval_bs 
 
     # Création des models
-    if params.model_path:
+    if params.model_path: 
+        # Dans le cas où on continue l'entainement d'un model
         f = load_model(params.model_path, 'f')
-        history =  load_history(params.model_path, from_model_path=True)
+        history =  load_history(params.model_path, parent_folder=True)
+        best_val_loss = history['reconstruction_val_loss'][-1]
+
+        if f.params.classifier_path:
+            best_val_acc = history['classifier_acc'][-1]
+        else:
+            best_val_acc = 0
+        
         assert params.attr == f.params.attr
         Data = Loader(params)
     else:
         f = Fader(params)
-    
-    if params.classifier_path:
-        C = load_model(params.classifier_path, model_type = 'c')
-        C.training = False
-
-    f.compile(
-        ae_opt= keras.optimizers.Adam(learning_rate=0.0002),
-        dis_opt= keras.optimizers.Adam(learning_rate=0.0002),
-        ae_loss = keras.losses.MeanSquaredError(),
-
-    )
-
-    
-
-    # Stats. Peut servier pour tracer un graphique de l'évolutoin
-    if 'history' not in locals() or history is None:
         history = {}
         history['reconstruction_loss'] = []
         history['discriminator_loss'] = []
@@ -81,10 +74,22 @@ if __name__ == "__main__":
         history['dis_val_accuracy']=[]
         history['classifier_loss']=[]
         history['classifier_acc']=[]
+        best_val_loss = np.inf
+        best_val_acc = 0
 
+
+    if params.classifier_path:
+        # Si on donne un classifier, en effet le classifier n'est pas obligatoire
+        C = load_model(params.classifier_path, model_type = 'c')
+        C.training = False
+
+    f.compile(
+        ae_opt= keras.optimizers.Adam(learning_rate=0.0002),
+        dis_opt= keras.optimizers.Adam(learning_rate=0.0002),
+        ae_loss = keras.losses.MeanSquaredError()
+
+    )
     cur_epoch = len(history['dis_accuracy'])
-    best_val_loss = np.inf
-    best_val_acc = 0
     # tf.config.run_functions_eagerly(True)
 
     #Boucle d'entrainement

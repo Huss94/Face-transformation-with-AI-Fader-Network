@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import tensorflow as tf
 from tensorflow import keras
 import argparse
@@ -14,17 +15,18 @@ parser.add_argument("--model_path", type = str, default = 'models/glasses/Ae_bes
 parser.add_argument("--img_path", type = str, default = "data/img_align_celeba_resized", help= "Path to images. It can be the directory of the image, or the npz file")
 parser.add_argument("--attr_path" ,type = str, default = "data/attributes.npz", help = "path to attributes")
 parser.add_argument("--n_images_to_infer", type = int, default = 10, help = "Nombre d'image a inférer")
-parser.add_argument("--n_alphas", type = int, default = 10, help = "Nombre d'image a inférer")
-parser.add_argument("--indices", type = str, default = None, help  = "Listes d'indices d'images a traiter. Si cette arguments et donné, inutile de donner n_images_to_infer")
+parser.add_argument("--n_alphas", type = int, default = 10, help = "Nombre d'image intermediaire")
 parser.add_argument("--load_in_ram", type= bool, default = False, help = "Si l'ordinateur n'a pas assez de ram pour charger toutes les données en meme temps, mettre False, le programme chargera seuleemnt les batchs de taille défini (32 par default) puis les déchargera après le calcul effectué") 
 parser.add_argument("--n_images", type = int, default = 202599, help = "Number of images in the dataset")
-parser.add_argument("--offset", type = int, default = 0, help = "Décalage dans la base de test")
 parser.add_argument("--save_path", type = str, default = "images", help = "Chemin de sauvegarde l'image")
 parser.add_argument("--alpha_min", type = float, default = 0, help = "Valeur minimal pour les attributs de la forme [alpha_min, alpha_max]")
 parser.add_argument("--alpha_max", type = float, default = 12, help = "Valeur maximal pour les attributs de la forme [alpha_min, alpha_max]")
 parser.add_argument("--random_ind", type = int, default = 1, help = "Défini si on prend des données hasardeuse dans la base de test")
+parser.add_argument("--offset", type = int, default = 0, help = "Décalage dans la base de test")
+parser.add_argument("--indices", type = str, default = '', help  = "Listes d'indices d'images a traiter. Si cette arguments et donné, inutile de donner n_images_to_infer")
 
 params = parser.parse_args()
+
 
 assert params.n_alphas >= 2
 assert params.n_images_to_infer >=1
@@ -53,12 +55,12 @@ print(alphas)
 
 Data = Loader(params)
 
-if params.random_ind and params.indices is None:
+if params.random_ind and not params.indices:
     params.indices = np.random.randint(Data.val_indices, Data.test_indices, bs)
 #Chargement des images 
 # On ne teste que sur la base de test que le reseau n'a jamais vu
 
-if params.indices is not None: 
+if params.indices: 
     if isinstance(params.indices, str):
         params.indices = [int(i) for i in params.indices.split(',')]
     print(params.indices)
@@ -111,5 +113,5 @@ if not os.path.isdir(params.save_path):
     os.mkdir(params.save_path)
 
 
-cv.imwrite(params.save_path + '/infered.jpg', final_image)
-print("Image saved to " + params.save_path + '/infered.jpg')
+cv.imwrite(params.save_path + '/gridOfCelebrity.jpg', final_image)
+print("Image saved to " + params.save_path + '/gridOfCelebrity.jpg')

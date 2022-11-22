@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os 
 import cv2 as cv
 import numpy as np
@@ -13,8 +14,12 @@ parser.add_argument("--img_save_path", type= str, default = "data/img_align_cele
 
 parser.add_argument("--attr_path", type= str, default = "data/list_attr_celeba.txt")
 parser.add_argument("--attr_save_path", type= str, default = "data/attributes.npz")
+parser.print_usage()
 
 params = parser.parse_args()
+for i in range(len(params)):
+    print(i)
+
 def process_images():
     
     # On regarde si les images n'ont pas déjà été processsed
