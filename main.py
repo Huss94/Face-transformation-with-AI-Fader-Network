@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(description='Train the fader Network')
 parser.add_argument("--batch_size", type = int, default = 32, help= "Size of the batch used during the training")
 parser.add_argument("--img_path", type = str, default = "data/img_align_celeba_resized", help= "Path to images. It can be the directory of the image, or the npz file")
 parser.add_argument("--attr_path" ,type = str, default = "data/attributes.npz", help = "path to attributes")
-parser.add_argument("--attr", type = str, default= "Male", help= "Considered attributes to train the network with")
+parser.add_argument("--attr", type = str, default= "Attractive", help= "Considered attributes to train the network with")
 parser.add_argument("--n_epoch", type = int, default = 1000, help = "Numbers of epochs")
 parser.add_argument("--epoch_size", type = int, default = 50000, help = "Number of images seen at each epoch")
 parser.add_argument("--n_images", type = int, default = 202599, help = "Number of images")
@@ -29,7 +29,7 @@ parser.add_argument("--resize", type= int, default = 0, help = "Applique le resi
 parser.add_argument("--save_path", type= str, default = "models", help = "Indique où enrisitrer le model") 
 parser.add_argument("--classifier_path", type= str, default = '', help = 'path to the trained classifier if classifier is given')
 parser.add_argument("--eval_bs", type= int, default = 32, help = 'Taille avec laquelle on subdivise la pase d\'évaluation')
-parser.add_argument("--model_path", type= str, default = '', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
+parser.add_argument("--model_path", type= str, default = 'models/Attractive/Fader_backup', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
 
 params = parser.parse_args()
 
@@ -51,6 +51,7 @@ if __name__ == "__main__":
     # Création des models
     if params.model_path:
         f = load_model(params.model_path, 'f')
+        history =  load_history(params.model_path, from_model_path=True)
         assert params.attr == f.params.attr
         Data = Loader(params)
     else:
@@ -70,22 +71,24 @@ if __name__ == "__main__":
     
 
     # Stats. Peut servier pour tracer un graphique de l'évolutoin
-    history = {}
-    history['reconstruction_loss'] = []
-    history['discriminator_loss'] = []
-    history['dis_accuracy'] = []
-    history['reconstruction_val_loss'] = []
-    history['discriminator_val_loss']=[]
-    history['dis_val_accuracy']=[]
-    history['classifier_loss']=[]
-    history['classifier_acc']=[]
+    if 'history' not in locals() or history is None:
+        history = {}
+        history['reconstruction_loss'] = []
+        history['discriminator_loss'] = []
+        history['dis_accuracy'] = []
+        history['reconstruction_val_loss'] = []
+        history['discriminator_val_loss']=[]
+        history['dis_val_accuracy']=[]
+        history['classifier_loss']=[]
+        history['classifier_acc']=[]
 
+    cur_epoch = len(history['dis_accuracy'])
     best_val_loss = np.inf
     best_val_acc = 0
     # tf.config.run_functions_eagerly(True)
 
     #Boucle d'entrainement
-    for epoch in range(params.n_epoch):
+    for epoch in range(cur_epoch, params.n_epoch):
 
         #Training
         recon_loss_tab = []
@@ -143,7 +146,7 @@ if __name__ == "__main__":
         # On sauvegarde a chaque epoque le fader_network au cas ou la machine crash, on pourra reprendre l'entrainement
         # save_model_weights prend aussi en compte les poids des opimizers.
         save_model_weights(f,  "Fader_backup",  params.save_path, get_optimizers=True)
-        save_history(history, params.save_path)
+        np.save(params.save_path + '/history' , history)
 
         # Sauvegarder le meilleur model a chaque epoch
         # On a 2 criètres pour la sauvegarde du model, celui qui reconstruit le mieux (plus petite reconstruciton loss)

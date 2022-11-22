@@ -78,21 +78,24 @@ def load_model(path, model_type, params_name = 'params.npy', weights_name ='weig
 
     model.load_weights(path + '/' +weights_name)
     model.trainable = train
-    
-    
+
 
     return model
 
 
-def save_history(h, path, name = "history.npy"):
+def load_history(path : str, name = "history.npy", from_model_path= False):
+    if from_model_path:
+        index = path[::-1].index('/') 
+        path = path[:len(path) - index - 1]
+
     if os.path.isfile(path +   '/'+ name):
+        h = np.load(path+ '/' + name , allow_pickle = True).item()
+        return h 
+
+def save_history(h:dict, path, name = "history.npy"):
+    if os.path.isfile(path +   '/'+ name) and len(h[h.keys()[0]]) != 1:
         h1= np.load(path+ '/' + name , allow_pickle = True).item()
         for p in h1:
             h1[p].extend(h[p])
         h = h1
     np.save(path+ '/' + name, h)
-
-        
-
-
-
