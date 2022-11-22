@@ -29,7 +29,7 @@ parser.add_argument("--resize", type= int, default = 0, help = "Applique le resi
 parser.add_argument("--save_path", type= str, default = "models", help = "Indique où enrisitrer le model") 
 parser.add_argument("--classifier_path", type= str, default = '', help = 'path to the trained classifier if classifier is given')
 parser.add_argument("--eval_bs", type= int, default = 32, help = 'Taille avec laquelle on subdivise la pase d\'évaluation')
-parser.add_argument("--model_path", type= str, default = 'models/Attractive/Fader_backup', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
+parser.add_argument("--model_path", type= str, default = '', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
 
 params = parser.parse_args()
 
