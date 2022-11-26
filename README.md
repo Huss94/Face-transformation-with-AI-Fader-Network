@@ -43,6 +43,9 @@ First of all we need to train a classifier. The classifier isn't necessary to tr
 You can download a trained classifier here on our drive :https://drive.google.com/drive/folders/1ylbeY9PZBJTggGF_3PlmKEPIZds2Q-e-?usp=sharing
 
 to train a classifier you need to execute the following command :
+All the arguments given below are defaults.
+
+
 ```bash
 ./clasifier.py
 
@@ -89,6 +92,7 @@ to train a classifier you need to execute the following command :
 
 ## 4. Fader Network training
 It is now time to train our model. To do so, use the following command :
+All the arguments given below are defaults.
 
 ```bash
 ./train.py
@@ -139,21 +143,18 @@ It is now time to train our model. To do so, use the following command :
 # 5. Use the fader network
 
 We propose you a little python program to use the fader network.</br>
-you can use the following command : 
-
-
+you can use the following command.
+All the arguments given below are defaults.
 
 ```bash
 ./use_fader.py
 
 # Path to the model we want to infer with. It has to be an AutoEncoder 
---model_path "models/Young/Ae_best_loss"
+# Exemple : models/Young/Ae_best_loss
+--model_path ""
 
 # Path to images
 --img_path "data/img_align_celeba_resized" 
-
-# Indique où enrisitrer le model
---save_path "models"
 
 # path to attributes
 --attr_path "data/attributes.npz"

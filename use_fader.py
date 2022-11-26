@@ -20,13 +20,15 @@ parser.add_argument("--load_in_ram", type= bool, default = False, help = "Si l'o
 parser.add_argument("--n_images", type = int, default = 202599, help = "Number of images in the dataset")
 parser.add_argument("--save_path", type = str, default = "images", help = "Chemin de sauvegarde l'image")
 parser.add_argument("--alpha_min", type = float, default = 0, help = "Valeur minimal pour les attributs de la forme [alpha_min, alpha_max]")
-parser.add_argument("--alpha_max", type = float, default = 12, help = "Valeur maximal pour les attributs de la forme [alpha_min, alpha_max]")
+parser.add_argument("--alpha_max", type = float, default = 3, help = "Valeur maximal pour les attributs de la forme [alpha_min, alpha_max]")
 parser.add_argument("--random_ind", type = int, default = 1, help = "Défini si on prend des données hasardeuse dans la base de test")
 parser.add_argument("--offset", type = int, default = 0, help = "Décalage dans la base de test")
 parser.add_argument("--indices", type = str, default = '', help  = "Listes d'indices d'images a traiter. Si cette arguments et donné, inutile de donner n_images_to_infer")
 
 params = parser.parse_args()
 
+if not params.indices:
+    params.indices = None
 
 assert params.n_alphas >= 2
 assert params.n_images_to_infer >=1
@@ -55,12 +57,12 @@ print(alphas)
 
 Data = Loader(params)
 
-if params.random_ind and not params.indices:
+if params.random_ind and params.indices is None:
     params.indices = np.random.randint(Data.val_indices, Data.test_indices, bs)
 #Chargement des images 
 # On ne teste que sur la base de test que le reseau n'a jamais vu
 
-if params.indices: 
+if params.indices is not None: 
     if isinstance(params.indices, str):
         params.indices = [int(i) for i in params.indices.split(',')]
     print(params.indices)

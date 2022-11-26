@@ -21,6 +21,7 @@ parser.add_argument("--loading_mode", type = str, default = "preprocessed", help
 parser.add_argument("--load_in_ram", type= int, default = 0, help = "Si l'ordinateur n'a pas assez de ram pour charger toutes les données en meme temps, mettre False, le programme chargera seuleemnt les batchs de taille défini (32 par default) puis les déchargera après le calcul effectué") 
 parser.add_argument("--resize", type= int, default = 0, help = "Applique le resize a chaque fois qu'une donnée est chargée. Mettre a False si les images on été resized en amont") 
 parser.add_argument("--model_path", type= str, default = '', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
+parser.add_argument("--eval_bs", type= int, default = 32, help = 'Taille avec laquelle on subdivise la pase d\'évaluation')
 
 
 # Pour charger toutes les données en ram il faudrait environ 40 go de ram
@@ -35,14 +36,17 @@ if __name__ == '__main__':
     val_indices = Data.val_indices
 
     # eval_bs correspond au batch a charger en mémooire pour l'évaluation, afin de pouvoir évaluer en plusieurs fois sur les petites configs
-    eval_bs = 10 
+    eval_bs = params.eval_bs 
 
 
 
     if params.model_path:
         C = load_model(params.model_path, model_type ='c')
         history = load_history(params.model_path)
-        best_acc = history['val_acc'][-1]
+        try: 
+            best_acc = history['val_acc'][-1]
+        except:
+            best_acc = 0
         assert params.attr == C.params.attr
 
     else:
