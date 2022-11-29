@@ -279,7 +279,7 @@ class Fader(keras.Model):
             z, decoded = self.ae(x,y)
             dis_preds = self.discriminator(z)
             ae_loss = self.ae_loss(x, decoded)
-            ae_loss = ae_loss + self.dis_loss(y, dis_preds)[0]*self.lambda_dis
+            ae_loss = ae_loss + self.dis_loss(1 - y, dis_preds)[0]*self.lambda_dis
         grads = tape.gradient(ae_loss, self.ae.trainable_weights)
         self.ae_opt.apply_gradients(zip(grads, self.ae.trainable_weights))
 

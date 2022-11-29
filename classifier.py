@@ -57,9 +57,10 @@ if __name__ == '__main__':
     C.compile(optimizer= keras.optimizers.Adam(learning_rate=0.0002))
 
     # tf.config.run_functions_eagerly(True)
-
+	
+    cur_epoch = len(history['val_loss'])
     print("Training:")
-    for epoch in range(params.n_epoch):
+    for epoch in range(cur_epoch, params.n_epoch):
         #training loop
         loss = []
         acc = []
