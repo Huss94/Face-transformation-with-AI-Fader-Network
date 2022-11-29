@@ -51,14 +51,14 @@ def save_model(model, name, folder_name= 'models', pickle_save = False):
         model.save(folder_name + '/' + name)
 
 
-def save_model_weights(model, name, folder_name ='models', get_optimizers = False):
+def save_model_weights(model, name, folder_name ='models'):
     print("Sauvegarde des poids du reseau")
     model.save_weights(folder_name + '/' + name + '/' + 'weights')
     np.save(folder_name + '/' + name + '/' + 'params', model.params)
 
 def load_model(path, model_type, params_name = 'params.npy', weights_name ='weights' , train = False):
     """
-    Charge un model, uniqnument pour l'inférence ce modèle ne peut pas etre entrainer étant donnée qu'on enrigistre pas le statut des optimizers 
+    Charge un model
     -----  
     Parameters : 
     path : str, chemin vers le dossier contenant le modèle

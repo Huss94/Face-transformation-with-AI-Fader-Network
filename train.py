@@ -131,36 +131,37 @@ if __name__ == "__main__":
 
             if params.classifier_path:
                 clf_l, clf_a  = C.eval_on_recons_attributes_batch((batch_x, tf.Variable(batch_y)), f) 
-
-            clf_loss.append(clf_l)
-            clf_acc.append(clf_a)
+                clf_loss.append(clf_l)
+                clf_acc.append(clf_a)
 
             recon_val_loss.append(recon_loss)
             dis_val_loss.append(dis_loss)
             dis_val_accuracy.append(dis_acc)
 
-            print(f"{step- train_indices}/{val_indices - train_indices},reconstruction loss : {recon_loss:.5f}, disc_loss : {dis_loss:.5f},clf_acc : {clf_a.numpy():.2f},  disc_accuracy = {dis_acc.numpy():.2f}, {(time() - t):.2f}s")
+            print(f"{step- train_indices}/{val_indices - train_indices},reconstruction loss : {recon_loss:.5f}, disc_loss : {dis_loss:.5f},  disc_accuracy = {dis_acc.numpy():.2f}, {(time() - t):.2f}s")
 
 
         history['reconstruction_val_loss'].append(np.mean(recon_val_loss))
         history['discriminator_val_loss'].append(np.mean(dis_val_loss))
         history['dis_val_accuracy'].append(np.mean(dis_val_accuracy))
-        history['classifier_loss'].append(np.mean(clf_loss))
-        history['classifier_acc'].append(np.mean(clf_acc))
+
+        if params.classifier_path:
+            history['classifier_loss'].append(np.mean(clf_loss))
+            history['classifier_acc'].append(np.mean(clf_acc))
 
         # On sauvegarde a chaque epoque le fader_network au cas ou la machine crash, on pourra reprendre l'entrainement
         # save_model_weights prend aussi en compte les poids des opimizers.
-        save_model_weights(f,  "Fader_backup",  params.save_path, get_optimizers=True)
+        save_model_weights(f,  "Fader_backup",  params.save_path)
         np.save(params.save_path + '/history' , history)
 
         # Sauvegarder le meilleur model a chaque epoch
         # On a 2 criètres pour la sauvegarde du model, celui qui reconstruit le mieux (plus petite reconstruciton loss)
         # Et celui dont le classifier entrainé en amont reconnait les attributs utilisé pour reconstruire l'image
+
+        # On ne sauvegarde pas les poids des optimizers, car inutile pour l'inférence
         if history['reconstruction_val_loss'][-1] < best_val_loss:
-            # En réalité il suffit de sauvegarder l'autoencoder, le discriminator ne servant a rien pour l'inférance
             best_val_loss = history['reconstruction_val_loss'][-1]
             save_model_weights(f.ae, "Ae_best_loss", params.save_path)
         if params.classifier_path and history['classifier_acc'][-1] > best_val_acc:
             best_val_acc = history['classifier_acc'][-1]
             save_model_weights(f.ae, "Ae_best_acc", params.save_path)
-        
