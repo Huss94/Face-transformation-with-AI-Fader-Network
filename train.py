@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser(description='Train the fader Network')
 parser.add_argument("--batch_size", type = int, default = 32, help= "Size of the batch used during the training")
 parser.add_argument("--img_path", type = str, default = "data/img_align_celeba_resized", help= "Path to images. It can be the directory of the image, or the npz file")
 parser.add_argument("--attr_path" ,type = str, default = "data/attributes.npz", help = "path to attributes")
-parser.add_argument("--attr", type = str, default= "Attractive", help= "Considered attributes to train the network with")
+parser.add_argument("--attr", type = str, default= "Male", help= "Considered attributes to train the network with")
 parser.add_argument("--n_epoch", type = int, default = 1000, help = "Numbers of epochs")
 parser.add_argument("--epoch_size", type = int, default = 50000, help = "Number of images seen at each epoch")
 parser.add_argument("--n_images", type = int, default = 202599, help = "Number of images")
@@ -30,15 +30,15 @@ parser.add_argument("--resize", type= int, default = 0, help = "Applique le resi
 parser.add_argument("--save_path", type= str, default = "models", help = "Indique où enrisitrer le model") 
 parser.add_argument("--classifier_path", type= str, default = '', help = 'path to the trained classifier if classifier is given (optional)')
 parser.add_argument("--eval_bs", type= int, default = 32, help = 'Taille avec laquelle on subdivise la pase d\'évaluation')
-parser.add_argument("--model_path", type= str, default = '', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
+parser.add_argument("--model_path", type= str, default = 'models/Male/Fader_backup', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
+parser.add_argument("--h_flip", type = int, default =0, help = "Flip horizontalement les images (data aumgentation)")
+parser.add_argument("--v_flip", type = int, default =0, help = "Flip verticalement les images (data aumgentation)")
 
 params = parser.parse_args()
 
 if __name__ == "__main__":
 
     Data = Loader(params)
-    if (len(params.attr) > 1): 
-        raise ValueError("Le modèle ne doit etre entrainé que sur un seul attibut")
 
 
     train_indices = Data.train_indices
@@ -53,17 +53,18 @@ if __name__ == "__main__":
     if params.model_path: 
         # Dans le cas où on continue l'entainement d'un model
         f = load_model(params.model_path, 'f')
-        history =  load_history(params.model_path, parent_folder=True)
-        best_val_loss = history['reconstruction_val_loss'][-1]
+        history =  load_history(params.model_path)
+        if history is not None:
+            best_val_loss = history['reconstruction_val_loss'][-1]
 
-        if f.params.classifier_path:
-            best_val_acc = history['classifier_acc'][-1]
-        else:
-            best_val_acc = 0
+            if f.params.classifier_path:
+                best_val_acc = history['classifier_acc'][-1]
+            else:
+                best_val_acc = 0
         
         assert params.attr == f.params.attr
         Data = Loader(params)
-    else:
+    if not params.model_path or history is None:
         f = Fader(params)
         history = {}
         history['reconstruction_loss'] = []
@@ -76,7 +77,6 @@ if __name__ == "__main__":
         history['classifier_acc']=[]
         best_val_loss = np.inf
         best_val_acc = 0
-
 
     if params.classifier_path:
         # Si on donne un classifier, en effet le classifier n'est pas obligatoire
@@ -150,18 +150,15 @@ if __name__ == "__main__":
             history['classifier_acc'].append(np.mean(clf_acc))
 
         # On sauvegarde a chaque epoque le fader_network au cas ou la machine crash, on pourra reprendre l'entrainement
-        # save_model_weights prend aussi en compte les poids des opimizers.
-        save_model_weights(f,  "Fader_backup",  params.save_path)
-        np.save(params.save_path + '/history' , history)
+        # save_model_weights prend aussi en compte les poids des opimizers. et enregistre l'historique
+        save_model_weights(f,   "Fader_backup",history,  params.save_path)
 
         # Sauvegarder le meilleur model a chaque epoch
         # On a 2 criètres pour la sauvegarde du model, celui qui reconstruit le mieux (plus petite reconstruciton loss)
         # Et celui dont le classifier entrainé en amont reconnait les attributs utilisé pour reconstruire l'image
-
-        # On ne sauvegarde pas les poids des optimizers, car inutile pour l'inférence
         if history['reconstruction_val_loss'][-1] < best_val_loss:
             best_val_loss = history['reconstruction_val_loss'][-1]
-            save_model_weights(f.ae, "Ae_best_loss", params.save_path)
+            save_model_weights(f.ae, "Ae_best_loss",history, params.save_path)
         if params.classifier_path and history['classifier_acc'][-1] > best_val_acc:
             best_val_acc = history['classifier_acc'][-1]
-            save_model_weights(f.ae, "Ae_best_acc", params.save_path)
+            save_model_weights(f.ae, "Ae_best_acc",history, params.save_path)

@@ -16,6 +16,10 @@ class Loader():
         self.val_indices = self.train_indices + int(self.n_images*0.1)
         self.test_indices = self.n_images
 
+        #Data augmentaiton
+        self.h_flip = params.h_flip
+        self.v_flip = params.v_flip
+
         self.data_loaded_in_ram = params.load_in_ram
         if self.data_loaded_in_ram:
             self.images = self.load_images_in_ram(params)
@@ -78,6 +82,13 @@ class Loader():
 
         if normal:
             im = normalize(im)
+        
+        if self.h_flip and np.random.rand() <= 0.5:
+            im = np.flip(im, axis = 1)
+
+        if self.v_flip and np.random.rand() <= 0.5:
+            im = np.flip(im, axis = 0)
+
         return im
 
     def prepare_attributes(self, params):

@@ -11,7 +11,7 @@ from utils import hstack, load_model , denormalize, vstack
 
 
 parser = argparse.ArgumentParser(description='Use the trained fader network on some images')
-parser.add_argument("--model_path", type = str, default = 'models/glasses/Ae_best_loss', help = "Chemin du fader network entrainé")
+parser.add_argument("--model_path", type = str, default = 'models/Male/Ae_best_loss', help = "Chemin du fader network entrainé")
 parser.add_argument("--img_path", type = str, default = "data/img_align_celeba_resized", help= "Path to images. It can be the directory of the image, or the npz file")
 parser.add_argument("--attr_path" ,type = str, default = "data/attributes.npz", help = "path to attributes")
 parser.add_argument("--n_images_to_infer", type = int, default = 10, help = "Nombre d'image a inférer")
@@ -24,6 +24,8 @@ parser.add_argument("--alpha_max", type = float, default = 3, help = "Valeur max
 parser.add_argument("--random_ind", type = int, default = 1, help = "Défini si on prend des données hasardeuse dans la base de test")
 parser.add_argument("--offset", type = int, default = 0, help = "Décalage dans la base de test")
 parser.add_argument("--indices", type = str, default = '', help  = "Listes d'indices d'images a traiter. Si cette arguments et donné, inutile de donner n_images_to_infer")
+parser.add_argument("--h_flip", type = int, default =0, help = "Flip horizontalement les images (data aumgentation)")
+parser.add_argument("--v_flip", type = int, default =0, help = "Flip verticalement les images (data aumgentation)")
 
 params = parser.parse_args()
 

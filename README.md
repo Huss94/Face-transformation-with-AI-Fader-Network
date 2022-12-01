@@ -118,6 +118,12 @@ All the arguments given below are defaults.
 # Numbers of epochs
 --n_epoch 5
 
+# Horizontal flip, data augmentation, 1 pour activer
+--h_flip 0
+
+# Horizontal flip, data augmentation, 1 pour activer
+--v_flip 0
+
 # Number of images seen at each epoch
 --epoch_size 50000
 
