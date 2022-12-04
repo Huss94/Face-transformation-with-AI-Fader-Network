@@ -6,10 +6,13 @@ from PIL import Image, ImageTk
 from utils import load_model
 from model import AutoEncoder
 import numpy as np
-from utils import denormalize, normalize
+from utils import denormalize, normalize, load_history
 import os 
 import cv2 as cv
 import time
+
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg,NavigationToolbar2Tk
+from matplotlib.figure import Figure
 
 
 N_IMAGES = 202599
@@ -18,16 +21,18 @@ N_IMAGES = 202599
 class gui():
    def __init__(self): 
       self.model = None
+      self.model_path = None
       self.img_path = "data/img_align_celeba_resized"
+
 
       self.tk = Tk()
       self.tk.title("Infer_image")
       self.tk.geometry("1000x600")
       #Images
-      self.img1 = Canvas(self.tk, width = 256, height= 256, bg = "green")
+      self.img1 = Canvas(self.tk, width = 256, height= 256, bg = "gray")
       self.img1.place(rely = 0.5, relx = 0.2, anchor =CENTER)
 
-      self.img2 = Canvas(self.tk, width = 256, height= 256, bg = "green")
+      self.img2 = Canvas(self.tk, width = 256, height= 256, bg = "gray")
       self.img2.place(rely = 0.5, relx = 0.8, anchor =CENTER)
 
 
@@ -43,10 +48,12 @@ class gui():
       # Boutton chargement du model
       self.model_frame = Frame(self.tk)
       self.model_select = Button(self.model_frame, text = "Select a model", command = self.dir_select)
+      self.history_button = Button(self.model_frame, text = 'show history', command = self.show_history)
       self.model_select_label = Label(self.model_frame, text="choose an autoencoder model")
 
       self.model_select_label.pack(side = BOTTOM)
-      self.model_select.pack()
+      self.history_button.pack()
+      self.model_select.pack(side = TOP)
 
       self.model_frame.place(relx= 0.5, rely = 0.9, anchor = CENTER )
 
@@ -109,6 +116,43 @@ class gui():
       self.tk.mainloop()
 
 
+   def show_history(self):
+      if self.model_path is not None:
+         h = load_history(self.model_path)
+
+         if h is not None:
+            n_epoch = len(h[list(h.keys())[0]])
+            f = Figure(figsize=(5,5), dpi=100)
+            a = f.add_subplot(111)
+
+            for i, attr in enumerate(h):
+               if 'loss' in attr and 'classifier' not in attr:
+                  a.plot(np.arange(0,n_epoch), h[attr], label = attr)
+            
+            a.legend()
+            a.set_title("Tracé des loss à travers les époch")
+            a.set_xlabel("epochs")
+            a.set_ylabel("Loss")
+
+            window = Tk()
+            window.title("Tracé des losses")
+            window.geometry("1000x600")
+            canvas = FigureCanvasTkAgg(f, window)
+            canvas.draw()
+            canvas.get_tk_widget().pack()
+
+            toolbar = NavigationToolbar2Tk(canvas, window)
+            toolbar.update()
+            canvas.get_tk_widget().pack()
+
+            window.mainloop()
+
+      else:
+         messagebox.showinfo("No model", "No model have been loaded, please select an autoencoder folder") 
+
+
+
+
    def reset(self):
       self.a_max.delete(0,END)
       self.a_min.delete(0,END)
@@ -151,12 +195,13 @@ class gui():
       else:
          ini = ""
 
-      self.filename = filedialog.askdirectory(initialdir = ini, title="select Model")
-      if len(self.filename) > 0:
+      dirname = filedialog.askdirectory(initialdir = ini, title="select Model")
+      if len(dirname) > 0:
          try:
 
-            model = load_model(self.filename, model_type = 'ae')
+            model = load_model(dirname, model_type = 'ae')
             self.model = model
+            self.model_path = dirname
             attr = self.model.params.attr
             if len(attr) > 0:
                s = ' '.join(attr) 
@@ -215,7 +260,6 @@ def test_id(n, mode = 'int'):
    except ValueError: 
       messagebox.showinfo("TypeERror", "Entrez une valeur numérique")
       return None
-      
 
 def infer(ae: AutoEncoder, img, a_min, a_max):
    if len(img.shape) >3:

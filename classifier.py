@@ -19,10 +19,10 @@ parser.add_argument("--epoch_size", type = int, default = 50000, help = "Number 
 parser.add_argument("--n_images", type = int, default = 202599, help = "Number of images")
 parser.add_argument("--loading_mode", type = str, default = "preprocessed", help = "2 values : 'preprocessed' or 'direct'. from what the data are loaded npz file or direct data")
 parser.add_argument("--load_in_ram", type= int, default = 0, help = "Si l'ordinateur n'a pas assez de ram pour charger toutes les données en meme temps, mettre False, le programme chargera seuleemnt les batchs de taille défini (32 par default) puis les déchargera après le calcul effectué") 
-parser.add_argument("--resize", type= int, default = 0, help = "Applique le resize a chaque fois qu'une donnée est chargée. Mettre a False si les images on été resized en amont") 
 parser.add_argument("--model_path", type= str, default = '', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
 parser.add_argument("--eval_bs", type= int, default = 32, help = 'Taille avec laquelle on subdivise la pase d\'évaluation')
-
+parser.add_argument("--h_flip", type = int, default =0, help = "Flip horizontalement les images (data aumgentation)")
+parser.add_argument("--v_flip", type = int, default =0, help = "Flip verticalement les images (data aumgentation)")
 
 # Pour charger toutes les données en ram il faudrait environ 40 go de ram
 # c'est pourquoi on preferera l'argument load_in_ram = false

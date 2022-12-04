@@ -6,7 +6,7 @@ Tensorflow implementation of Fader Network https://arxiv.org/pdf/1706.00409.pdf
 Tensorflow
 OpenCV
 
-## 2. Installation
+## 2. Installation
 
 First of all you need to clone the repository:
 ```bash
@@ -29,13 +29,15 @@ Preprocess the data with the command :
 --attr_save_path "data/attributes.npz" #Where the processed list will be saved 
 ```
 
+We could give to the network not preprocessed (not resized) images, but it would be longer.
+
 if you have a good connection and wan't to jump the preprocessing, you can download our preprocessed images and attributes at :
 https://drive.google.com/drive/folders/1ylbeY9PZBJTggGF_3PlmKEPIZds2Q-e-?usp=sharing
 
 By downloading `img_align_celeba_resized` and `attributes.npz` and placing them into the `data` folder
 
 
-## 3. Classifier
+## 3. Classifier
 
 First of all we need to train a classifier. The classifier isn't necessary to train a Fader model but it helps to save the best model.</br>
 (As the classifier isn't involved in the training of the fader, this step is optional)
@@ -82,15 +84,12 @@ All the arguments given below are defaults.
 # Should the program load all the data in RAM for training ?
 --load_in_ram 0
 
-# Put 1 if images have not been preprocessed
---resize 0
-
 # If we already trained a model and wan't to continue the training, inform the path to the classifier model folder 
 --model_path ''
 ```
 
 
-## 4. Fader Network training
+## 4. Fader Network training
 It is now time to train our model. To do so, use the following command :
 All the arguments given below are defaults.
 
@@ -136,8 +135,6 @@ All the arguments given below are defaults.
 # Should the program load all the data in RAM for training ?
 --load_in_ram 0
 
-# Put 1 if images have not been preprocessed
---resize 0
 
 # If we want to continue the training, inform the path of the "Fader_backup" folder
 --model_path ''
@@ -146,9 +143,19 @@ All the arguments given below are defaults.
 --classifier_path ''
 ```
 
-# 5. Use the fader network
+It will generate 3 directory in models/Male
 
-We propose you a little python program to use the fader network.</br>
+ - Ae_best_loss
+ - Ae_best_acc
+ - Fader_backup
+
+Fader_backup is used to take back training
+Ae_best_loss is used for inferation,  it's an AutoEncoder that had the best reconstruction loss
+Ae_best_acc is the AutoEncoder model that had the best accuracy given by the classifier
+
+## 5. Use the fader network
+
+We propose you a little python program to use the fader network. (another method is given below)</br>
 you can use the following command.
 All the arguments given below are defaults.
 
@@ -198,4 +205,19 @@ All the arguments given below are defaults.
 # List of indices of images in the dataset, ex : 5,1,2,1561,4564,31
 --indices ""
 
+```
+
+
+
+
+## 6. Use our gui
+
+We provide you with a gui to make inferation of the model.
+it allows to control the y attributes [a_min, a_max] we give in the decoder and see the change on the image directly
+
+<img src="images/gui_exemple.png"/>
+
+to use it, use the following command
+```bash
+python gui.py
 ```

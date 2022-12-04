@@ -42,7 +42,6 @@ ae = load_model(params.model_path, model_type = 'ae')
 bs = params.n_images_to_infer
 n_alphas = params.n_alphas
 params.attr = ae.params.attr
-params.resize = ae.params.resize
 
 
 

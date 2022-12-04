@@ -8,7 +8,6 @@ class Loader():
         self.img_path = params.img_path
         self.attr_path = params.attr_path
         self.attributes =  self.prepare_attributes(params)
-        self.need_to_resize = params.resize
         self.n_images = params.n_images
 
         # Séparation des datasets 
@@ -39,8 +38,7 @@ class Loader():
             self.images = np.load(self.img_path)['arr_0']
         else:
             for i in indices:
-                # On considère que les image ont déjà été resized
-                im = self.load_image(i, False, normal= True)
+                im = self.load_image(i, normal= True)
                 im = np.expand_dims(im, 0)
                 self.images = vstack(self.images, im)
                 if i % 100 == 0:
@@ -64,7 +62,7 @@ class Loader():
 
         for i in indices:
             if not self.data_loaded_in_ram:
-                im = self.load_image(i, resize = self.need_to_resize)
+                im = self.load_image(i)
             else:
                 im = self.images[i-1]
 
@@ -74,10 +72,12 @@ class Loader():
             
         return tf.constant(batch_x), tf.constant(batch_y)   
 
-    def load_image(self,i,resize = True, normal = True):
+    def load_image(self,i, normal = True):
         im = cv.imread(self.img_path+"/%06i.jpg" %i)
+        shp = im.shape
 
-        if resize:
+
+        if shp[0] != 256 or shp[1] != 256:
             im = cv.resize(im, (256,256), interpolation=cv.INTER_LANCZOS4)
 
         if normal:
