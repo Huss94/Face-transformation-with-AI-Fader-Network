@@ -5,6 +5,8 @@ import pickle
 from model import Classifier, Fader, AutoEncoder
 import glob
 
+from matplotlib.figure import Figure
+
 def vstack(array1, array2):
     try:
         new_array = np.vstack((array1,array2))
@@ -27,7 +29,22 @@ def hstack(array1, array2):
 
     return new_array
 
+def trace_history(h : dict):
+    if h is not None:
+        n_epoch = len(h[list(h.keys())[0]])
+        f = Figure(figsize=(5,5), dpi=100)
+        a = f.add_subplot(111)
 
+        for i, attr in enumerate(h):
+            if 'loss' in attr and 'classifier' not in attr:
+                a.plot(np.arange(0,n_epoch), h[attr], label = attr)
+                
+        a.legend()
+        a.set_title("Tracé des loss à travers les époch")
+        a.set_xlabel("epochs")
+        a.set_ylabel("Loss")
+    
+        return f
 
 def normalize(image):    
     # Normalization entre -1 et 1 

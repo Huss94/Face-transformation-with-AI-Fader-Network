@@ -1,0 +1,118 @@
+Model "Encoder"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ conv2d (Conv2D)             (None, 128, 128, 16)      784       
+                                                                 
+ conv2d_1 (Conv2D)           (None, 64, 64, 32)        8224      
+                                                                 
+ batch_normalization (BatchN  (None, 64, 64, 32)       128       
+ ormalization)                                                   
+                                                                 
+ conv2d_2 (Conv2D)           (None, 32, 32, 64)        32832     
+                                                                 
+ batch_normalization_2 (Batc  (None, 32, 32, 64)       256       
+ hNormalization)                                                 
+                                                                 
+ conv2d_3 (Conv2D)           (None, 16, 16, 128)       131200    
+                                                                 
+ batch_normalization_4 (Batc  (None, 16, 16, 128)      512       
+ hNormalization)                                                 
+                                                                 
+ conv2d_4 (Conv2D)           (None, 8, 8, 256)         524544    
+                                                                 
+ batch_normalization_6 (Batc  (None, 8, 8, 256)        1024      
+ hNormalization)                                                 
+                                                                 
+ conv2d_5 (Conv2D)           (None, 4, 4, 512)         2097664   
+                                                                 
+ batch_normalization_8 (Batc  (None, 4, 4, 512)        2048      
+ hNormalization)                                                 
+                                                                 
+ conv2d_6 (Conv2D)           (None, 2, 2, 512)         4194816   
+                                                                 
+ batch_normalization_10 (Bat  (None, 2, 2, 512)        2048      
+ chNormalization)                                                
+                                                                 
+=================================================================
+Total params: 6,996,080
+Trainable params: 6,993,072
+Non-trainable params: 3,008
+
+
+
+_________________________________________________________________
+Model: "Decoder"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ conv2d_transpose (Conv2DTra  (None, 4, 4, 512)        4211200   
+ nspose)                                                         
+                                                                 
+ conv2d_transpose_1 (Conv2DT  (None, 8, 8, 512)        4194816   
+ ranspose)                                                       
+                                                                 
+ batch_normalization_1 (Batc  (None, 8, 8, 512)        2048      
+ hNormalization)                                                 
+                                                                 
+ conv2d_transpose_2 (Conv2DT  (None, 16, 16, 256)      2097408   
+ ranspose)                                                       
+                                                                 
+ batch_normalization_3 (Batc  (None, 16, 16, 256)      1024      
+ hNormalization)                                                 
+                                                                 
+ conv2d_transpose_3 (Conv2DT  (None, 32, 32, 128)      524416    
+ ranspose)                                                       
+                                                                 
+ batch_normalization_5 (Batc  (None, 32, 32, 128)      512       
+ hNormalization)                                                 
+                                                                 
+ conv2d_transpose_4 (Conv2DT  (None, 64, 64, 64)       131136    
+ ranspose)                                                       
+                                                                 
+ batch_normalization_7 (Batc  (None, 64, 64, 64)       256       
+ hNormalization)                                                 
+                                                                 
+ conv2d_transpose_5 (Conv2DT  (None, 128, 128, 32)     32800     
+ ranspose)                                                       
+                                                                 
+ batch_normalization_9 (Batc  (None, 128, 128, 32)     128       
+ hNormalization)                                                 
+                                                                 
+ conv2d_transpose_6 (Conv2DT  (None, 256, 256, 3)      1539      
+ ranspose)                                                       
+                                                                 
+ batch_normalization_11 (Bat  (None, 256, 256, 3)      12        
+ chNormalization)                                                
+                                                                 
+=================================================================
+Total params: 11,197,295
+Trainable params: 11,195,305
+Non-trainable params: 1,990
+
+
+
+
+_________________________________________________________________
+Model: "discriminator"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ conv2d_7 (Conv2D)           (None, 1, 1, 512)         4194816   
+                                                                 
+ batch_normalization_12 (Bat  (None, 1, 1, 512)        2048      
+ chNormalization)                                                
+                                                                 
+ dropout (Dropout)           (None, 1, 1, 512)         0         
+                                                                 
+ dense (Dense)               (None, 1, 1, 512)         262656    
+                                                                 
+ dense_1 (Dense)             (None, 1, 1, 2)           1026      
+                                                                 
+ reshape (Reshape)           (None, 2)                 0         
+                                                                 
+=================================================================
+Total params: 4,460,546
+Trainable params: 4,459,522
+Non-trainable params: 1,024
+_________________________________________________________________

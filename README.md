@@ -36,6 +36,21 @@ https://drive.google.com/drive/folders/1ylbeY9PZBJTggGF_3PlmKEPIZds2Q-e-?usp=sha
 
 By downloading `img_align_celeba_resized` and `attributes.npz` and placing them into the `data` folder
 
+Or you can use the folowing command that will do all the work : 
+with this command, you won't have to proprocess, the data have already been processed.
+
+
+```bash
+#Download images resized
+!wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1pJ3g0FRi1gMbJ1RBocgcsha2_doI-PW-' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1pJ3g0FRi1gMbJ1RBocgcsha2_doI-PW-" -O data/img_align_celeba_resized.zip && rm -rf /tmp/cookies.txt
+
+!unzip -qq data/img_align_celeba_resized.zip -d data/
+
+!rm data/img_align_celeba_resized.zip
+
+#Downloading attributes processed
+!wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1NnR_3yVfZxXGBmaKmI95bE9_p-EOrWRf' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1NnR_3yVfZxXGBmaKmI95bE9_p-EOrWRf" -O data/attributes.npz && rm -rf /tmp/cookies.txt
+```
 
 ## 3. Classifier
 
@@ -43,6 +58,14 @@ First of all we need to train a classifier. The classifier isn't necessary to tr
 (As the classifier isn't involved in the training of the fader, this step is optional)
 
 You can download a trained classifier here on our drive :https://drive.google.com/drive/folders/1ylbeY9PZBJTggGF_3PlmKEPIZds2Q-e-?usp=sharing
+
+Or use the command directly in the FaderNetwork_MLA directory
+```bash
+!wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1nQiYHEspE1R2iTZCxu5oJ4_sUeUe54tt' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1nQiYHEspE1R2iTZCxu5oJ4_sUeUe54tt" -O models/classifier.zip && rm -rf /tmp/cookies.txt
+!unzip -qq models/classifier.zip -d models
+!rm models/classifier.zip
+```
+
 
 to train a classifier you need to execute the following command :
 All the arguments given below are defaults.
@@ -141,6 +164,10 @@ All the arguments given below are defaults.
 
 # Classifier path to classifier folder (optional) exemple : models/classifier
 --classifier_path ''
+
+# If you want to add weights to make the trained under represented attributes more likely to appear put it to 1
+--weighted 0
+
 ```
 
 It will generate 3 directory in models/Male
@@ -153,11 +180,23 @@ Fader_backup is used to take back training
 Ae_best_loss is used for inferation,  it's an AutoEncoder that had the best reconstruction loss
 Ae_best_acc is the AutoEncoder model that had the best accuracy given by the classifier
 
+
+You will find some trained AutoEncoder in the `models` after you use the command : 
+
+```bash
+!wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1ob775rr86kvzdbdBAy3IHWwbInr5HgGE' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1ob775rr86kvzdbdBAy3IHWwbInr5HgGE" -O models/trained_models.zip && rm -rf /tmp/cookies.txt
+!unzip models/trained_models.zip -d models
+!rm models/trained_models.zip
+```
+
+You can then use them with the following sections
 ## 5. Use the fader network
 
 We propose you a little python program to use the fader network. (another method is given below)</br>
 you can use the following command.
 All the arguments given below are defaults.
+
+However, we recommand you to use our GUI, easier to use.
 
 ```bash
 ./use_fader.py
@@ -206,8 +245,6 @@ All the arguments given below are defaults.
 --indices ""
 
 ```
-
-
 
 
 ## 6. Use our gui

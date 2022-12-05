@@ -6,7 +6,7 @@ from PIL import Image, ImageTk
 from utils import load_model
 from model import AutoEncoder
 import numpy as np
-from utils import denormalize, normalize, load_history
+from utils import denormalize, normalize, load_history, trace_history
 import os 
 import cv2 as cv
 import time
@@ -119,33 +119,20 @@ class gui():
    def show_history(self):
       if self.model_path is not None:
          h = load_history(self.model_path)
+         f = trace_history(h)
 
-         if h is not None:
-            n_epoch = len(h[list(h.keys())[0]])
-            f = Figure(figsize=(5,5), dpi=100)
-            a = f.add_subplot(111)
+         window = Tk()
+         window.title(f"Tracé des losses pour attributs")
+         window.geometry("1000x600")
+         canvas = FigureCanvasTkAgg(f, window)
+         canvas.draw()
+         canvas.get_tk_widget().pack()
 
-            for i, attr in enumerate(h):
-               if 'loss' in attr and 'classifier' not in attr:
-                  a.plot(np.arange(0,n_epoch), h[attr], label = attr)
-            
-            a.legend()
-            a.set_title("Tracé des loss à travers les époch")
-            a.set_xlabel("epochs")
-            a.set_ylabel("Loss")
+         toolbar = NavigationToolbar2Tk(canvas, window)
+         toolbar.update()
+         canvas.get_tk_widget().pack()
 
-            window = Tk()
-            window.title("Tracé des losses")
-            window.geometry("1000x600")
-            canvas = FigureCanvasTkAgg(f, window)
-            canvas.draw()
-            canvas.get_tk_widget().pack()
-
-            toolbar = NavigationToolbar2Tk(canvas, window)
-            toolbar.update()
-            canvas.get_tk_widget().pack()
-
-            window.mainloop()
+         window.mainloop()
 
       else:
          messagebox.showinfo("No model", "No model have been loaded, please select an autoencoder folder") 

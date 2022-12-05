@@ -7,6 +7,7 @@ import numpy as np
 from utils import *
 from time import time
 import argparse
+from tensorflow.keras.utils import Progbar
 
 parser = argparse.ArgumentParser(description='Training of the calssifier')
 parser.add_argument("--img_path", type = str, default = "data/img_align_celeba_resized", help= "Path to images")
@@ -59,11 +60,17 @@ if __name__ == '__main__':
     # tf.config.run_functions_eagerly(True)
 	
     cur_epoch = len(history['val_loss'])
-    print("Training:")
     for epoch in range(cur_epoch, params.n_epoch):
         #training loop
         loss = []
         acc = []
+
+        train_progbar = Progbar(params.epoch_size)
+        eval_progbar = Progbar(val_indices - train_indices)
+        print('\n' +f"Epoch {epoch} / {params.n_epoch}")
+
+        print("Training")
+
         for step in range(0, params.epoch_size, params.batch_size):
             t = time()
             batch_x, batch_y  = Data.load_random_batch(1, train_indices, params.batch_size)
@@ -71,7 +78,8 @@ if __name__ == '__main__':
 
             loss.append(l)
             acc.append(a)
-            print(f"epoch : {1 + epoch}/{params.n_epoch}, {step}/{params.epoch_size}, accuracy = {a.numpy():.2f}, loss = {l.numpy():.2f} calculé en : {time() - t:.2f}s")
+
+            train_progbar.add(params.batch_size, values = [("loss", l), ("accuracy",a)])
                 
         history['train_loss'].append(np.mean(loss))
         history['train_acc'].append(np.mean(acc))
@@ -90,7 +98,7 @@ if __name__ == '__main__':
             loss.append(l)
             acc.append(a)
 
-            print(f"{step- train_indices}/{val_indices - train_indices}, accuracy = {a.numpy():.2f}, {time() - t:.2f}")
+            eval_progbar.add(eval_bs, values = [("val_loss", l), ("val_acc", a)])
         
         # Peut nous permettre de tracer un graph.
         history['val_loss'].append(np.mean(loss))

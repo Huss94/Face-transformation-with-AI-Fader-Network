@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from tqdm import tqdm
+from tensorflow.keras.utils import Progbar
 
 from loader import Loader
 from model import AutoEncoder, Classifier, Fader
@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser(description='Train the fader Network')
 parser.add_argument("--batch_size", type = int, default = 32, help= "Size of the batch used during the training")
 parser.add_argument("--img_path", type = str, default = "data/img_align_celeba_resized", help= "Path to images. It can be the directory of the image, or the npz file")
 parser.add_argument("--attr_path" ,type = str, default = "data/attributes.npz", help = "path to attributes")
-parser.add_argument("--attr", type = str, default= "Male", help= "Considered attributes to train the network with")
+parser.add_argument("--attr", type = str, default= "Eyeglasses", help= "Considered attributes to train the network with")
 parser.add_argument("--n_epoch", type = int, default = 1000, help = "Numbers of epochs")
 parser.add_argument("--epoch_size", type = int, default = 50000, help = "Number of images seen at each epoch")
 parser.add_argument("--n_images", type = int, default = 202599, help = "Number of images")
@@ -32,12 +32,13 @@ parser.add_argument("--eval_bs", type= int, default = 32, help = 'Taille avec la
 parser.add_argument("--model_path", type= str, default = '', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
 parser.add_argument("--h_flip", type = int, default =0, help = "Flip horizontalement les images (data aumgentation)")
 parser.add_argument("--v_flip", type = int, default =0, help = "Flip verticalement les images (data aumgentation)")
+parser.add_argument("--wheighted", type = int, default = 0, help = "if 1, increase the rate image with attribute appear (for under represented attributes)")
 
 params = parser.parse_args()
 
 if __name__ == "__main__":
 
-    Data = Loader(params)
+    Data = Loader(params, weighted_attributes = params.wheighted)
 
 
     train_indices = Data.train_indices
@@ -52,6 +53,7 @@ if __name__ == "__main__":
     if params.model_path: 
         # Dans le cas où on continue l'entainement d'un model
         f = load_model(params.model_path, 'f')
+        print("Model LOADED")
         history =  load_history(params.model_path)
         if history is not None:
             best_val_loss = history['reconstruction_val_loss'][-1]
@@ -62,7 +64,7 @@ if __name__ == "__main__":
                 best_val_acc = 0
         
         assert params.attr == f.params.attr
-        Data = Loader(params)
+        Data = Loader(params, params.weighted)
     if not params.model_path or history is None:
         f = Fader(params)
         history = {}
@@ -82,14 +84,17 @@ if __name__ == "__main__":
         C = load_model(params.classifier_path, model_type = 'c')
         C.training = False
 
-    f.compile(
-        ae_opt= keras.optimizers.Adam(learning_rate=0.0002),
-        dis_opt= keras.optimizers.Adam(learning_rate=0.0002),
-        ae_loss = keras.losses.MeanSquaredError()
+    # Une erreur étrange sur le serveu gpu  de la fac qui demandait d'utiliser keras.optimizers.legacy.Adam
+    try:
+        f.compile( ae_opt= keras.optimizers.Adam(learning_rate=0.0002), dis_opt= keras.optimizers.Adam(learning_rate=0.0002), ae_loss = keras.losses.MeanSquaredError())
+    except: 
+        f.compile( ae_opt= keras.optimizers.legacy.Adam(learning_rate=0.0002), dis_opt= keras.optimizers.legacy.Adam(learning_rate=0.0002), ae_loss = keras.losses.MeanSquaredError())
 
-    )
+
     cur_epoch = len(history['dis_accuracy'])
     # tf.config.run_functions_eagerly(True)
+
+
 
     #Boucle d'entrainement
     for epoch in range(cur_epoch, params.n_epoch):
@@ -98,20 +103,26 @@ if __name__ == "__main__":
         recon_loss_tab = []
         dis_loss_tab = []
         dis_accuracy_tab = []
+        train_progbar = Progbar(params.epoch_size, stateful_metrics = ["recon_loss", "dis_loss"])
+        eval_progbar = Progbar(val_indices - train_indices, stateful_metrics = ["recon_val_loss", "dis_val_loss"])
+        print('\n' +f"Epoch {epoch} / {params.n_epoch}")
 
+        print("Training")
         for step in range(0, params.epoch_size, params.batch_size):
-            t = time()
+
             batch_x, batch_y = Data.load_random_batch(1, train_indices, params.batch_size)
             recon_loss, dis_loss,  dis_acc= f.train_step((batch_x, batch_y))
 
             recon_loss_tab.append(recon_loss)
             dis_loss_tab.append(dis_loss)
             dis_accuracy_tab.append(dis_acc)
-            print(f"epoch : {epoch}/{params.n_epoch}, {step}/{params.epoch_size},reonstruction loss : {recon_loss:.5f}, disc_loss : {dis_loss:.5f}, disc_accuracy = {dis_acc.numpy()}, {round(time() - t, 2)}s")
+
+            train_progbar.add(params.batch_size, values = [("dis_loss", dis_loss), ("recon_loss",recon_loss), ("mean_dis_loss", dis_loss), ("mean_recon_loss", recon_loss)])
             
         history['reconstruction_loss'].append(np.mean(recon_loss_tab))
         history['discriminator_loss'].append(np.mean(dis_loss_tab))
         history['dis_accuracy'].append(np.mean(dis_accuracy_tab))
+
 
         # Validation
         recon_val_loss = []
@@ -120,9 +131,8 @@ if __name__ == "__main__":
         clf_loss = []
         clf_acc = []
 
-        print("Evaluation du model :")
+        print("Evaluation")
         for step in range(train_indices, val_indices, eval_bs):
-            t = time()
             stepTo = step + eval_bs if step +eval_bs < val_indices else val_indices 
 
             batch_x, batch_y = Data.load_batch_sequentially(step, stepTo)
@@ -137,7 +147,7 @@ if __name__ == "__main__":
             dis_val_loss.append(dis_loss)
             dis_val_accuracy.append(dis_acc)
 
-            print(f"{step- train_indices}/{val_indices - train_indices},reconstruction loss : {recon_loss:.5f}, disc_loss : {dis_loss:.5f},  disc_accuracy = {dis_acc.numpy():.2f}, {(time() - t):.2f}s")
+            eval_progbar.add(eval_bs, values = [("dis_val_loss", dis_loss), ("recon_val_loss", recon_loss), ("mean_dis_val_loss", dis_loss), ("mean_recon_val_loss", dis_loss)])
 
 
         history['reconstruction_val_loss'].append(np.mean(recon_val_loss))
@@ -161,3 +171,8 @@ if __name__ == "__main__":
         if params.classifier_path and history['classifier_acc'][-1] > best_val_acc:
             best_val_acc = history['classifier_acc'][-1]
             save_model_weights(f.ae, "Ae_best_acc",history, params.save_path)
+        if epoch % 5 == 0: 
+            try:
+                save_model_weights(f.ae, params.attr[0] +'_'+ str(epoch), history, params.save_path)
+            except:
+                pass

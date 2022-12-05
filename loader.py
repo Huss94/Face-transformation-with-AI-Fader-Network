@@ -4,7 +4,7 @@ import tensorflow as tf
 from utils import vstack, normalize
 import glob
 class Loader():
-    def __init__(self, params):
+    def __init__(self, params, weighted_attributes = False):
         self.img_path = params.img_path
         self.attr_path = params.attr_path
         self.attributes =  self.prepare_attributes(params)
@@ -15,6 +15,12 @@ class Loader():
         self.val_indices = self.train_indices + int(self.n_images*0.1)
         self.test_indices = self.n_images
 
+        # Attributes weights for under represented attributes.
+        self.weighted_attributes = weighted_attributes
+        if weighted_attributes :
+            self.weighted_probabilites = self.compute_weights_prob()
+    
+
         #Data augmentaiton
         self.h_flip = params.h_flip
         self.v_flip = params.v_flip
@@ -24,6 +30,22 @@ class Loader():
             self.images = self.load_images_in_ram(params)
         
     
+
+    def compute_weights_prob(self):
+        tab = self.attributes[:self.train_indices - 1, 1]
+        s = np.count_nonzero(self.attributes[:self.train_indices - 1,1])
+        # Il faut qu'o ndonne des poids de sorte a retrouver l'attributs qu'on  entraine 1 fois sur 2
+        ind_0 = np.where(tab == 0)
+        ind_1 = np.where(tab == 1)
+        tab[ind_1] =  0.5/s
+        tab[ind_0] = 0.5/(len(tab) - s)
+
+        # Images begin at indice 1
+        # tab = np.insert(tab, 0, 0)
+
+
+        return tab
+
     def load_images_in_ram(self, params):
         """
         Two mode of loading : 
@@ -47,7 +69,12 @@ class Loader():
 
 
     def load_random_batch(self, ind_min, ind_max, bs):
-        indices = np.random.randint(ind_min, ind_max, bs)
+        if self.weighted_attributes:
+            assert self.attributes.shape[1] == 2
+            indices = np.random.choice(np.arange(ind_min,ind_max), bs, p = self.weighted_probabilites)
+
+        else:
+            indices = np.random.randint(ind_min, ind_max, bs)
         return self.load_batch(indices)
 
     def load_batch_sequentially(self,ind_min, ind_max):
