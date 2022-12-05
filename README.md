@@ -1,6 +1,7 @@
 # Projet FaderNetwork
 
 Tensorflow implementation of Fader Network https://arxiv.org/pdf/1706.00409.pdf
+You can read our report at https://github.com/Huss94/FaderNetwork_MLA/blob/master/Advance%20Machine%20Learning%20Project.pdf
 
 ## 1. Dependencies
 Tensorflow
@@ -42,14 +43,14 @@ with this command, you won't have to proprocess, the data have already been proc
 
 ```bash
 #Download images resized
-!wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1pJ3g0FRi1gMbJ1RBocgcsha2_doI-PW-' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1pJ3g0FRi1gMbJ1RBocgcsha2_doI-PW-" -O data/img_align_celeba_resized.zip && rm -rf /tmp/cookies.txt
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1pJ3g0FRi1gMbJ1RBocgcsha2_doI-PW-' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1pJ3g0FRi1gMbJ1RBocgcsha2_doI-PW-" -O data/img_align_celeba_resized.zip && rm -rf /tmp/cookies.txt
 
-!unzip -qq data/img_align_celeba_resized.zip -d data/
+unzip -qq data/img_align_celeba_resized.zip -d data/
 
-!rm data/img_align_celeba_resized.zip
+rm data/img_align_celeba_resized.zip
 
 #Downloading attributes processed
-!wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1NnR_3yVfZxXGBmaKmI95bE9_p-EOrWRf' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1NnR_3yVfZxXGBmaKmI95bE9_p-EOrWRf" -O data/attributes.npz && rm -rf /tmp/cookies.txt
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1NnR_3yVfZxXGBmaKmI95bE9_p-EOrWRf' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1NnR_3yVfZxXGBmaKmI95bE9_p-EOrWRf" -O data/attributes.npz && rm -rf /tmp/cookies.txt
 ```
 
 ## 3. Classifier
@@ -61,9 +62,9 @@ You can download a trained classifier here on our drive :https://drive.google.co
 
 Or use the command directly in the FaderNetwork_MLA directory
 ```bash
-!wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1nQiYHEspE1R2iTZCxu5oJ4_sUeUe54tt' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1nQiYHEspE1R2iTZCxu5oJ4_sUeUe54tt" -O models/classifier.zip && rm -rf /tmp/cookies.txt
-!unzip -qq models/classifier.zip -d models
-!rm models/classifier.zip
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1nQiYHEspE1R2iTZCxu5oJ4_sUeUe54tt' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1nQiYHEspE1R2iTZCxu5oJ4_sUeUe54tt" -O models/classifier.zip && rm -rf /tmp/cookies.txt
+unzip -qq models/classifier.zip -d models
+rm models/classifier.zip
 ```
 
 
@@ -165,7 +166,7 @@ All the arguments given below are defaults.
 # Classifier path to classifier folder (optional) exemple : models/classifier
 --classifier_path ''
 
-# If you want to add weights to make the trained under represented attributes more likely to appear put it to 1
+#The probability in which we want to feed the Network  for the trained attributes. If 0 we use default dataset
 --weighted 0
 
 ```
@@ -184,9 +185,9 @@ Ae_best_acc is the AutoEncoder model that had the best accuracy given by the cla
 You will find some trained AutoEncoder in the `models` after you use the command : 
 
 ```bash
-!wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1ob775rr86kvzdbdBAy3IHWwbInr5HgGE' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1ob775rr86kvzdbdBAy3IHWwbInr5HgGE" -O models/trained_models.zip && rm -rf /tmp/cookies.txt
-!unzip models/trained_models.zip -d models
-!rm models/trained_models.zip
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1ob775rr86kvzdbdBAy3IHWwbInr5HgGE' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1ob775rr86kvzdbdBAy3IHWwbInr5HgGE" -O models/trained_models.zip && rm -rf /tmp/cookies.txt
+unzip models/trained_models.zip -d models
+rm models/trained_models.zip
 ```
 
 You can then use them with the following sections

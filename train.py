@@ -32,13 +32,13 @@ parser.add_argument("--eval_bs", type= int, default = 32, help = 'Taille avec la
 parser.add_argument("--model_path", type= str, default = '', help = "si on a déja entrainé un model, on peut continuer l'entrainment de model en spécifiant son chemin")
 parser.add_argument("--h_flip", type = int, default =0, help = "Flip horizontalement les images (data aumgentation)")
 parser.add_argument("--v_flip", type = int, default =0, help = "Flip verticalement les images (data aumgentation)")
-parser.add_argument("--wheighted", type = int, default = 0, help = "if 1, increase the rate image with attribute appear (for under represented attributes)")
+parser.add_argument("--weighted", type = float, default = 0.3, help = "The probability (float between 0 and 1) in which we want to feed the Network  for the trained attributes. If 0 we use default dataset")
 
 params = parser.parse_args()
-
+assert params.weighted <= 1 and params.weighted >=0
 if __name__ == "__main__":
 
-    Data = Loader(params, weighted_attributes = params.wheighted)
+    Data = Loader(params, weighted_attributes = params.weighted)
 
 
     train_indices = Data.train_indices

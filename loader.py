@@ -32,16 +32,15 @@ class Loader():
     
 
     def compute_weights_prob(self):
-        tab = self.attributes[:self.train_indices - 1, 1]
+        tab = self.attributes[:self.train_indices - 1, 1].copy()
         s = np.count_nonzero(self.attributes[:self.train_indices - 1,1])
         # Il faut qu'o ndonne des poids de sorte a retrouver l'attributs qu'on  entraine 1 fois sur 2
         ind_0 = np.where(tab == 0)
         ind_1 = np.where(tab == 1)
-        tab[ind_1] =  0.5/s
-        tab[ind_0] = 0.5/(len(tab) - s)
+        p = self.weighted_attributes
+        tab[ind_1] =  p/s
+        tab[ind_0] = (1-p)/(len(tab) - s)
 
-        # Images begin at indice 1
-        # tab = np.insert(tab, 0, 0)
 
 
         return tab
