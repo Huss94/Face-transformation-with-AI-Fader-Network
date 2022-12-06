@@ -136,3 +136,55 @@ def load_history(path : str, name = "history.npy"):
                 index = path[::-1].index('/') 
                 path = path[:len(path) - index - 1]
     return None
+
+
+def dic_to_tab(dic):
+    """
+    Transform a dictionnary to a table of tuple 
+
+    Args:
+        dic (dict): dictonarry of metrics
+
+    Returns:
+        table of tuple (keys, value)
+    """
+    tab = []
+    for k in dic:
+        tab.append((k,dic[k]))
+
+    return tab
+
+class Metrics:
+    """Class to handle metrics easly 
+    """
+    def __init__(self, *metrics):
+        self.count = 0
+        self.dic = {}
+        for i in metrics:
+            self.dic[i] = []
+        
+    
+    def update(self,dic):
+        """Update values in the dictionnary by addin one value
+
+        Args:
+            dic (_type_): _description_
+        """
+        for p in dic:
+            if p in self.dic:
+                self.dic[p].append(dic[p])
+
+    def load(self,dic):
+        self.dic = dic
+    
+    def load_dic_from_path(self, folder_path, name = "history.npy"):
+        self.dic = load_history(folder_path, name)
+    
+    def save(self,path, name):
+        np.save(path + "/" + name, self.dic)
+        
+
+        
+        
+
+
