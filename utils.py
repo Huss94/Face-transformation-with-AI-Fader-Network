@@ -138,7 +138,7 @@ def load_history(path : str, name = "history.npy"):
     return None
 
 
-def dic_to_tab(dic):
+def dic_to_tab(dic, exception = []):
     """
     Transform a dictionnary to a table of tuple 
 
@@ -150,41 +150,87 @@ def dic_to_tab(dic):
     """
     tab = []
     for k in dic:
-        tab.append((k,dic[k]))
+        if k not in exception:
+            tab.append((k,dic[k]))
 
     return tab
 
+
+def fill_tab(tab, desired_size, value):
+    diff = desired_size - len(tab)
+    assert diff > 0
+
+    diff_tab = [value]*diff
+    tab += diff_tab
+
+
+
 class Metrics:
-    """Class to handle metrics easly 
+    """Class to handle metrics easily 
     """
     def __init__(self, *metrics):
-        self.count = 0
-        self.dic = {}
+        self.epoch = 0
+        self.metrics = metrics
+        self.mean_dic = {}
+
         for i in metrics:
-            self.dic[i] = []
+            self.mean_dic[i] = [None]
         
+    def __getitem__(self, value : str):
+        return self.mean_dic[value]
+    
+    def add_metrics(self,*metrics):
+        for m in metrics:
+            self.metrics.append(m)
     
     def update(self,dic):
-        """Update values in the dictionnary by addin one value
+        """Update values in the dictionnary and compute directly the mean of each metrics
 
         Args:
-            dic (_type_): _description_
+            dic (dict): Dictonnary of metrics and current iteration value
         """
         for p in dic:
-            if p in self.dic:
-                self.dic[p].append(dic[p])
+            if p in self.mean_dic:
+                if isinstance(dic[p], tf.Tensor):
+                    dic[p] = dic[p].numpy()
+                try:
+                    current = self.mean_dic[p][self.epoch]
+                except IndexError:
+                    fill_tab(self.mean_dic[p], self.epoch + 1, None)
+                    current = self.mean_dic[p][self.epoch]
+
+                if  current is None or np.isnan(current):
+                   self.mean_dic[p][self.epoch] = dic[p]
+                else:
+                    self.mean_dic[p][self.epoch] =  (current + dic[p])/2
+    
+    def new_epoch(self):
+        self.epoch +=1
+        for m in self.metrics : 
+            self.mean_dic[m].append(None)
 
     def load(self,dic):
-        self.dic = dic
+        self.mean_dic = dic
+        best = 0
+        for m in self.mean_dic:
+            l = len(self.mean_dic[m])
+            if l > best:
+                best = l
+        self.epoch = best - 1
+        self.new_epoch()
+
+
     
     def load_dic_from_path(self, folder_path, name = "history.npy"):
-        self.dic = load_history(folder_path, name)
+        self.load(load_history(folder_path, name))
+
     
     def save(self,path, name):
-        np.save(path + "/" + name, self.dic)
+        np.save(path + "/" + name, self.mean_dic)
         
+    def __len__(self):
+        return self.epoch
+
+
 
         
-        
-
-

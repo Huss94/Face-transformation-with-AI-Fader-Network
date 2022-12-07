@@ -158,7 +158,7 @@ class Classifier(keras.Model):
 
 
         fader.trainable = True
-        return tf.reduce_mean(loss), tf.reduce_mean(acc)
+        return {"classifier_loss" : tf.reduce_mean(loss), "classifier_acc" : tf.reduce_mean(acc)}
 
 
     def call(self, x):
@@ -217,12 +217,6 @@ class Fader(keras.Model):
         self.n_iter = 0
         self.lambda_dis = 0
     
-
-    # def set_optimizer_weights(self,weights):
-    #     self.ae_opt.set_weights(weights[0])
-    #     self.dis_opt.set_weights(weights[1])
-
-
     def get_optimizers(self):
         return (self.ae_opt, self.dis_opt)
 
@@ -234,7 +228,7 @@ class Fader(keras.Model):
         self.ae_loss = ae_loss
 
     @tf.function
-    def evaluate_on_val(self,data):
+    def test_step(self,data):
         x,y = data
         self.discriminator.trainable = False
         self.ae.trainable = False
@@ -247,8 +241,7 @@ class Fader(keras.Model):
         # Autoencodeodr
         ae_loss = self.ae_loss(x, decoded)
         ae_loss = ae_loss + dis_loss*self.lambda_dis
-
-        return ae_loss, dis_loss, dis_accuracy
+        return {"reconstruction_val_loss" : ae_loss, "discriminator_val_loss" : dis_loss, "dis_val_accuracy" :dis_accuracy}
 
     #Transformation en graph, accelere l'entrainemnet
     @tf.function
@@ -285,7 +278,7 @@ class Fader(keras.Model):
 
         self.n_iter+=1
         self.lambda_dis = 0.0001*min(self.n_iter/500000, 1)
-        return ae_loss, dis_loss, dis_accuracy
+        return {"reconstruction_loss" : ae_loss, "discriminator_loss" : dis_loss, "dis_accuracy" :dis_accuracy}
 
    
 if __name__  == "__main__":
