@@ -4,8 +4,10 @@ Tensorflow implementation of Fader Network https://arxiv.org/pdf/1706.00409.pdf 
 You can read our report at https://github.com/Huss94/FaderNetwork_MLA/blob/master/Advance%20Machine%20Learning%20Project.pdf
 
 ## 1. Dependencies
-Tensorflow
-OpenCV
+
+Tensorflow\
+OpenCV\
+tkinter (if you use the gui)
 
 ## 2. Installation
 
@@ -255,7 +257,7 @@ it allows to control the y attributes [a_min, a_max] we give in the decoder and 
 
 <img src="images/gui_exemple.png"/>
 
-to use it, use the following command
+to use it, make sure you have tkinter installed and use the following command
 ```bash
 python gui.py
 ```
