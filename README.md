@@ -1,7 +1,7 @@
 # Projet FaderNetwork
 
 Tensorflow implementation of Fader Network https://arxiv.org/pdf/1706.00409.pdf \
-You can read our report at https://github.com/Huss94/FaderNetwork_MLA/blob/master/Advance%20Machine%20Learning%20Project.pdf
+You can read our report at https://github.com/Huss94/FaderNetwork_MLA/blob/master/Compte%20Rendu.pdf
 
 ## 1. Dependencies
 
